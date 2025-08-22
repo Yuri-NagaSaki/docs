@@ -1,0 +1,484 @@
+---
+title: "Authentication"
+description: "API key validation and authentication methods for ImageFlow"
+---
+
+## Authentication Overview
+
+ImageFlow uses API key authentication to secure sensitive endpoints. All authenticated endpoints require a valid API key provided in the request headers.
+
+## Authentication Methods
+
+### API Key Header
+
+Include your API key in the `X-API-Key` header for all authenticated requests:
+
+```http
+X-API-Key: your-api-key-here
+```
+
+<Warning>
+  Never include your API key in URLs, query parameters, or client-side code. Always use secure headers and environment variables.
+</Warning>
+
+## Validate API Key
+
+<api-endpoint method="POST" endpoint="/api/validate-api-key">
+
+Validates the provided API key and returns key information.
+
+### Request
+
+<param-field header="X-API-Key" type="string" required>
+  Your ImageFlow API key
+</param-field>
+
+<param-field body="api_key" type="string" optional>
+  Alternative way to provide API key in request body
+</param-field>
+
+### Response
+
+<response-example>
+```json Success Response
+{
+  "success": true,
+  "data": {
+    "valid": true,
+    "key_id": "key_123456",
+    "permissions": [
+      "upload",
+      "delete",
+      "list",
+      "config"
+    ],
+    "rate_limit": {
+      "limit": 1000,
+      "window": 60
+    },
+    "expires_at": null
+  },
+  "message": "API key is valid"
+}
+```
+
+```json Invalid Key Response
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_API_KEY",
+    "message": "Invalid or missing API key"
+  }
+}
+```
+
+```json Missing Key Response
+{
+  "success": false,
+  "error": {
+    "code": "MISSING_API_KEY",
+    "message": "API key is required"
+  }
+}
+```
+</response-example>
+
+### cURL Example
+
+```bash
+curl -X POST \
+  -H "X-API-Key: your-api-key-here" \
+  https://your-domain.com/api/validate-api-key
+```
+
+### JavaScript Example
+
+```javascript
+const response = await fetch('/api/validate-api-key', {
+  method: 'POST',
+  headers: {
+    'X-API-Key': 'your-api-key-here',
+    'Content-Type': 'application/json'
+  }
+});
+
+const result = await response.json();
+
+if (result.success) {
+  console.log('API key is valid:', result.data);
+} else {
+  console.error('Invalid API key:', result.error.message);
+}
+```
+
+### Python Example
+
+```python
+import requests
+
+headers = {
+    'X-API-Key': 'your-api-key-here',
+    'Content-Type': 'application/json'
+}
+
+response = requests.post(
+    'https://your-domain.com/api/validate-api-key',
+    headers=headers
+)
+
+result = response.json()
+
+if result['success']:
+    print('API key is valid:', result['data'])
+else:
+    print('Invalid API key:', result['error']['message'])
+```
+
+</api-endpoint>
+
+## API Key Management
+
+### Getting Your API Key
+
+Your API key is configured during ImageFlow setup. It's stored as an environment variable:
+
+```env
+API_KEY=your-secure-api-key-here
+```
+
+### Generating a Secure API Key
+
+Generate a cryptographically secure API key:
+
+<CodeGroup>
+  ```bash OpenSSL
+  openssl rand -hex 32
+  ```
+
+  ```bash Python
+  python -c "import secrets; print(secrets.token_hex(32))"
+  ```
+
+  ```javascript Node.js
+  const crypto = require('crypto');
+  console.log(crypto.randomBytes(32).toString('hex'));
+  ```
+
+  ```bash Linux
+  head -c 32 /dev/urandom | base64
+  ```
+</CodeGroup>
+
+### API Key Best Practices
+
+<AccordionGroup>
+  <Accordion title="Security Guidelines">
+    - Use at least 32 characters with random alphanumeric characters
+    - Store in environment variables, never in code
+    - Rotate keys regularly (quarterly recommended)
+    - Use different keys for different environments
+    - Never log API keys in application logs
+  </Accordion>
+
+  <Accordion title="Storage Recommendations">
+    - **Environment Variables**: Preferred method for server applications
+    - **Secret Management**: Use AWS Secrets Manager, Azure Key Vault, etc.
+    - **CI/CD**: Store as encrypted secrets in your CI/CD pipeline
+    - **Local Development**: Use `.env` files (add to .gitignore)
+  </Accordion>
+
+  <Accordion title="Error Handling">
+    - Implement proper error handling for authentication failures
+    - Don't expose API key validation details to end users
+    - Log authentication attempts for security monitoring
+    - Implement rate limiting to prevent brute force attacks
+  </Accordion>
+</AccordionGroup>
+
+## Authentication Errors
+
+### Common Error Responses
+
+<AccordionGroup>
+  <Accordion title="Missing API Key">
+    **Status Code**: `401 Unauthorized`
+
+    ```json
+    {
+      "success": false,
+      "error": {
+        "code": "MISSING_API_KEY",
+        "message": "API key is required for this endpoint"
+      }
+    }
+    ```
+
+    **Solution**: Include the `X-API-Key` header in your request.
+  </Accordion>
+
+  <Accordion title="Invalid API Key">
+    **Status Code**: `401 Unauthorized`
+
+    ```json
+    {
+      "success": false,
+      "error": {
+        "code": "INVALID_API_KEY",
+        "message": "Invalid API key provided"
+      }
+    }
+    ```
+
+    **Solutions**:
+    - Verify the API key is correct
+    - Check for extra spaces or characters
+    - Ensure the key hasn't been changed or rotated
+  </Accordion>
+
+  <Accordion title="Expired API Key">
+    **Status Code**: `401 Unauthorized`
+
+    ```json
+    {
+      "success": false,
+      "error": {
+        "code": "EXPIRED_API_KEY",
+        "message": "API key has expired"
+      }
+    }
+    ```
+
+    **Solution**: Generate and configure a new API key.
+  </Accordion>
+
+  <Accordion title="Rate Limit Exceeded">
+    **Status Code**: `429 Too Many Requests`
+
+    ```json
+    {
+      "success": false,
+      "error": {
+        "code": "RATE_LIMIT_EXCEEDED",
+        "message": "Rate limit exceeded for this API key",
+        "details": "Limit: 1000 requests per minute"
+      }
+    }
+    ```
+
+    **Solutions**:
+    - Implement exponential backoff
+    - Reduce request frequency
+    - Contact support for higher limits if needed
+  </Accordion>
+</AccordionGroup>
+
+## Testing Authentication
+
+### Quick Authentication Test
+
+```bash
+# Test with valid API key
+curl -I -H "X-API-Key: your-api-key" \
+  https://your-domain.com/api/validate-api-key
+
+# Expected: HTTP/1.1 200 OK
+
+# Test with invalid API key
+curl -I -H "X-API-Key: invalid-key" \
+  https://your-domain.com/api/validate-api-key
+
+# Expected: HTTP/1.1 401 Unauthorized
+```
+
+### Automated Testing
+
+```javascript
+// Jest test example
+describe('API Authentication', () => {
+  test('should accept valid API key', async () => {
+    const response = await fetch('/api/validate-api-key', {
+      method: 'POST',
+      headers: { 'X-API-Key': process.env.VALID_API_KEY }
+    });
+    
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.success).toBe(true);
+  });
+
+  test('should reject invalid API key', async () => {
+    const response = await fetch('/api/validate-api-key', {
+      method: 'POST',
+      headers: { 'X-API-Key': 'invalid-key' }
+    });
+    
+    expect(response.status).toBe(401);
+    const result = await response.json();
+    expect(result.success).toBe(false);
+  });
+});
+```
+
+## Multiple API Keys
+
+If you need multiple API keys for different services or environments:
+
+### Environment-Specific Keys
+
+```env
+# Development
+DEV_API_KEY=dev-key-12345
+
+# Staging
+STAGING_API_KEY=staging-key-67890
+
+# Production
+PROD_API_KEY=prod-key-abcdef
+```
+
+### Service-Specific Keys
+
+```env
+# Web application
+WEB_API_KEY=web-service-key
+
+# Mobile application
+MOBILE_API_KEY=mobile-service-key
+
+# Backend integration
+BACKEND_API_KEY=backend-service-key
+```
+
+## SDK Authentication Examples
+
+### JavaScript/Node.js
+
+```javascript
+const ImageFlow = require('imageflow-client');
+
+const client = new ImageFlow({
+  baseURL: 'https://your-domain.com',
+  apiKey: process.env.IMAGEFLOW_API_KEY
+});
+
+// Client automatically handles authentication headers
+const result = await client.upload(files, { tags: ['example'] });
+```
+
+### Python
+
+```python
+from imageflow import ImageFlowClient
+
+client = ImageFlowClient(
+    base_url='https://your-domain.com',
+    api_key=os.environ['IMAGEFLOW_API_KEY']
+)
+
+# Client automatically handles authentication headers
+result = client.upload(files, tags=['example'])
+```
+
+### Go
+
+```go
+package main
+
+import (
+    "github.com/imageflow/go-client"
+)
+
+func main() {
+    client := imageflow.NewClient(&imageflow.Config{
+        BaseURL: "https://your-domain.com",
+        APIKey:  os.Getenv("IMAGEFLOW_API_KEY"),
+    })
+
+    // Client automatically handles authentication headers
+    result, err := client.Upload(files, &imageflow.UploadOptions{
+        Tags: []string{"example"},
+    })
+}
+```
+
+## Security Considerations
+
+<AccordionGroup>
+  <Accordion title="API Key Rotation">
+    Regularly rotate your API keys:
+
+    1. Generate a new API key
+    2. Update your ImageFlow configuration
+    3. Update all client applications
+    4. Monitor for any authentication errors
+    5. Invalidate the old key
+
+    ```bash
+    # Generate new key
+    NEW_KEY=$(openssl rand -hex 32)
+
+    # Update ImageFlow configuration
+    echo "API_KEY=$NEW_KEY" > .env
+
+    # Restart ImageFlow
+    systemctl restart imageflow
+    ```
+  </Accordion>
+
+  <Accordion title="Monitoring and Logging">
+    Monitor API key usage for security:
+
+    - Log all authentication attempts
+    - Monitor for unusual usage patterns
+    - Set up alerts for authentication failures
+    - Track API key usage by source IP
+
+    ```bash
+    # Check authentication logs
+    tail -f /var/log/imageflow/auth.log | grep "INVALID_API_KEY"
+
+    # Monitor failed authentication attempts
+    grep "401" /var/log/imageflow/access.log | wc -l
+    ```
+  </Accordion>
+
+  <Accordion title="Network Security">
+    Additional security measures:
+
+    - Always use HTTPS in production
+    - Implement IP whitelisting if possible
+    - Use VPN or private networks for sensitive operations
+    - Consider mutual TLS for high-security environments
+
+    ```nginx
+    # Nginx configuration for IP whitelisting
+    location /api/ {
+        allow 192.168.1.0/24;
+        allow 10.0.0.0/8;
+        deny all;
+        
+        proxy_pass http://imageflow-backend;
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Upload Images" icon="upload" href="/api-reference/upload">
+    Learn how to upload images using authenticated endpoints
+  </Card>
+  
+  <Card title="Manage Images" icon="images" href="/api-reference/images">
+    List and manage your uploaded images
+  </Card>
+  
+  <Card title="Configuration" icon="gear" href="/api-reference/config">
+    Access system configuration settings
+  </Card>
+  
+  <Card title="Random Images" icon="shuffle" href="/api-reference/random">
+    Get random images (no authentication required)
+  </Card>
+</CardGroup>

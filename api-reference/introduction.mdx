@@ -1,33 +1,374 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: 'API Reference'
+description: 'Complete API reference for ImageFlow image service system'
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+## Welcome to ImageFlow API
 
-## Welcome
+ImageFlow provides a comprehensive REST API for image upload, management, and optimization. The API is designed to be simple, secure, and scalable for integration with any application.
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+## Base URL
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+All API endpoints are relative to your ImageFlow base URL:
+
+```
+https://your-imageflow-domain.com/api
+```
+
+For local development:
+```
+http://localhost:8080/api
+```
+
+## API Overview
+
+ImageFlow API consists of two main categories:
+
+<CardGroup cols={2}>
+  <Card title="Public Endpoints" icon="globe">
+    Endpoints that don't require authentication, such as random image serving and API key validation
+  </Card>
+  
+  <Card title="Authenticated Endpoints" icon="lock">
+    Protected endpoints for image upload, management, and configuration that require API key authentication
+  </Card>
+</CardGroup>
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+ImageFlow uses API key authentication for protected endpoints. Include your API key in the request header:
 
-```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
+```http
+X-API-Key: your-api-key-here
 ```
+
+<Warning>
+  Keep your API key secure and never expose it in client-side code. Use environment variables or secure credential management systems.
+</Warning>
+
+### Getting Your API Key
+
+Your API key is configured during ImageFlow setup in the environment variables:
+
+```env
+API_KEY=your-secure-api-key-here
+```
+
+<Tip>
+  Use the `/api/validate-api-key` endpoint to verify your API key is working correctly.
+</Tip>
+
+## Response Format
+
+All API responses use JSON format with consistent structure:
+
+### Success Response
+```json
+{
+  "success": true,
+  "data": {
+    // Response data here
+  },
+  "message": "Operation completed successfully"
+}
+```
+
+### Error Response
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable error message",
+    "details": "Additional error details if available"
+  }
+}
+```
+
+## Status Codes
+
+ImageFlow API uses standard HTTP status codes:
+
+| Code | Description |
+|------|-------------|
+| `200` | Success |
+| `201` | Created |
+| `400` | Bad Request |
+| `401` | Unauthorized |
+| `403` | Forbidden |
+| `404` | Not Found |
+| `413` | Payload Too Large |
+| `429` | Too Many Requests |
+| `500` | Internal Server Error |
+
+## Rate Limiting
+
+ImageFlow implements rate limiting to ensure fair usage:
+
+- **Public endpoints**: 100 requests per minute per IP
+- **Authenticated endpoints**: 1000 requests per minute per API key
+- **Upload endpoints**: 50 uploads per minute per API key
+
+Rate limit headers are included in responses:
+
+```http
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 999
+X-RateLimit-Reset: 1640995200
+```
+
+## Content Types
+
+### Request Content Types
+
+- **JSON requests**: `application/json`
+- **File uploads**: `multipart/form-data`
+- **Form data**: `application/x-www-form-urlencoded`
+
+### Response Content Types
+
+- **API responses**: `application/json`
+- **Image serving**: `image/jpeg`, `image/webp`, `image/avif`, etc.
+
+## File Upload Limits
+
+- **Maximum file size**: 10MB per image (configurable)
+- **Maximum files per request**: 20 images (configurable)
+- **Maximum total size**: 100MB per request (configurable)
+- **Supported formats**: JPEG, PNG, WebP, AVIF, GIF, TIFF
+
+## Image Formats and Optimization
+
+ImageFlow automatically optimizes uploaded images:
+
+<AccordionGroup>
+  <Accordion title="Automatic Format Conversion">
+    - Original format preserved
+    - WebP version created for modern browsers
+    - AVIF version created for maximum compression
+    - GIF animations preserved
+  </Accordion>
+
+  <Accordion title="Device-Aware Serving">
+    - Landscape versions for desktop devices
+    - Portrait versions for mobile devices
+    - Automatic format selection based on browser support
+  </Accordion>
+
+  <Accordion title="Quality Optimization">
+    - Configurable quality settings (default: 80%)
+    - Intelligent compression based on content
+    - Metadata stripping for privacy and size reduction
+  </Accordion>
+</AccordionGroup>
+
+## SDK and Libraries
+
+Official and community SDKs are available for popular programming languages:
+
+<CardGroup cols={3}>
+  <Card title="JavaScript/Node.js" icon="js">
+    ```bash
+    npm install imageflow-client
+    ```
+  </Card>
+  
+  <Card title="Python" icon="python">
+    ```bash
+    pip install imageflow-python
+    ```
+  </Card>
+  
+  <Card title="PHP" icon="php">
+    ```bash
+    composer require imageflow/client
+    ```
+  </Card>
+  
+  <Card title="Go" icon="golang">
+    ```bash
+    go get github.com/imageflow/go-client
+    ```
+  </Card>
+  
+  <Card title="Java" icon="java">
+    ```xml
+    <dependency>
+      <groupId>com.imageflow</groupId>
+      <artifactId>imageflow-client</artifactId>
+    </dependency>
+    ```
+  </Card>
+  
+  <Card title="REST API" icon="api">
+    Use standard HTTP clients for any language
+  </Card>
+</CardGroup>
+
+## Quick Start Examples
+
+### Upload an Image (cURL)
+
+```bash
+curl -X POST \
+  -H "X-API-Key: your-api-key" \
+  -F "images=@photo.jpg" \
+  -F "tags=nature,landscape" \
+  https://your-domain.com/api/upload
+```
+
+### Get Random Image (cURL)
+
+```bash
+curl https://your-domain.com/api/random?tags=nature&orientation=landscape
+```
+
+### JavaScript Example
+
+```javascript
+const formData = new FormData();
+formData.append('images', fileInput.files[0]);
+formData.append('tags', 'nature,landscape');
+
+const response = await fetch('/api/upload', {
+  method: 'POST',
+  headers: {
+    'X-API-Key': 'your-api-key'
+  },
+  body: formData
+});
+
+const result = await response.json();
+console.log(result);
+```
+
+## WebSocket Support
+
+ImageFlow provides real-time updates via WebSocket connections:
+
+```javascript
+const ws = new WebSocket('wss://your-domain.com/ws');
+
+ws.on('upload-progress', (data) => {
+  console.log(`Upload progress: ${data.progress}%`);
+});
+
+ws.on('processing-complete', (data) => {
+  console.log('Image processing completed:', data.image);
+});
+```
+
+## Error Handling
+
+Common error scenarios and how to handle them:
+
+<AccordionGroup>
+  <Accordion title="Authentication Errors">
+    ```json
+    {
+      "success": false,
+      "error": {
+        "code": "INVALID_API_KEY",
+        "message": "Invalid or missing API key"
+      }
+    }
+    ```
+    
+    **Solutions:**
+    - Verify API key is correct
+    - Check X-API-Key header is included
+    - Ensure API key hasn't been revoked
+  </Accordion>
+
+  <Accordion title="Upload Errors">
+    ```json
+    {
+      "success": false,
+      "error": {
+        "code": "FILE_TOO_LARGE",
+        "message": "File size exceeds maximum limit",
+        "details": "Maximum size is 10MB"
+      }
+    }
+    ```
+    
+    **Solutions:**
+    - Reduce file size before upload
+    - Compress images client-side
+    - Contact administrator to increase limits
+  </Accordion>
+
+  <Accordion title="Rate Limit Errors">
+    ```json
+    {
+      "success": false,
+      "error": {
+        "code": "RATE_LIMIT_EXCEEDED",
+        "message": "Too many requests",
+        "details": "Rate limit: 1000 requests per minute"
+      }
+    }
+    ```
+    
+    **Solutions:**
+    - Implement exponential backoff
+    - Reduce request frequency
+    - Use batch operations where possible
+  </Accordion>
+</AccordionGroup>
+
+## API Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/api-reference/authentication">
+    API key validation and authentication methods
+  </Card>
+  
+  <Card title="Random Images" icon="shuffle" href="/api-reference/random">
+    Get random images with filtering options
+  </Card>
+  
+  <Card title="Image Upload" icon="upload" href="/api-reference/upload">
+    Upload and process multiple images
+  </Card>
+  
+  <Card title="Image Management" icon="images" href="/api-reference/images">
+    List, filter, and manage uploaded images
+  </Card>
+  
+  <Card title="Image Deletion" icon="trash" href="/api-reference/delete">
+    Delete images and associated files
+  </Card>
+  
+  <Card title="Configuration" icon="gear" href="/api-reference/config">
+    Get system configuration and settings
+  </Card>
+  
+  <Card title="Tags" icon="tag" href="/api-reference/tags">
+    Manage image tags and categories
+  </Card>
+  
+  <Card title="Cleanup" icon="broom" href="/api-reference/cleanup">
+    Clean up expired and orphaned images
+  </Card>
+</CardGroup>
+
+## Need Help?
+
+<CardGroup cols={2}>
+  <Card title="Postman Collection" icon="file-text">
+    Download our Postman collection to test all endpoints easily
+  </Card>
+  
+  <Card title="OpenAPI Spec" icon="code">
+    Access the complete OpenAPI 3.0 specification
+  </Card>
+  
+  <Card title="Support" icon="life-buoy">
+    Contact our support team for technical assistance
+  </Card>
+  
+  <Card title="GitHub Issues" icon="github">
+    Report bugs and request features on GitHub
+  </Card>
+</CardGroup>

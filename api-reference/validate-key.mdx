@@ -1,0 +1,541 @@
+---
+title: "Validate API Key"
+description: "Validate your API key and check authentication status"
+---
+
+## API Key Validation
+
+The validate API key endpoint allows you to verify that your API key is valid and check its permissions. This is useful for testing authentication and getting information about your API key.
+
+<Info>
+  This endpoint can be used without authentication to test if an API key is valid, but it also works with authenticated requests to get detailed key information.
+</Info>
+
+## Validate Key
+
+<api-endpoint method="POST" endpoint="/api/validate-api-key">
+
+Validates an API key and returns information about its permissions and status.
+
+### Request Methods
+
+You can provide the API key in two ways:
+
+#### Method 1: Header Authentication (Recommended)
+<param-field header="X-API-Key" type="string" required>
+  Your ImageFlow API key
+</param-field>
+
+#### Method 2: Request Body
+<param-field body="api_key" type="string" required>
+  Your ImageFlow API key in the request body
+</param-field>
+
+### Response
+
+<response-example>
+```json Valid API Key
+{
+  "success": true,
+  "data": {
+    "valid": true,
+    "key_info": {
+      "key_id": "key_abc123",
+      "created_at": "2023-10-15T10:30:00Z",
+      "last_used": "2023-10-21T14:22:15Z",
+      "usage_count": 1523
+    },
+    "permissions": [
+      "upload",
+      "delete", 
+      "list",
+      "config",
+      "tags",
+      "cleanup"
+    ],
+    "rate_limits": {
+      "requests_per_minute": 1000,
+      "uploads_per_minute": 50,
+      "current_usage": 23
+    },
+    "expires_at": null,
+    "environment": "production"
+  },
+  "message": "API key is valid and active"
+}
+```
+
+```json Invalid API Key
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_API_KEY",
+    "message": "The provided API key is invalid or has been revoked"
+  }
+}
+```
+
+```json Missing API Key
+{
+  "success": false,
+  "error": {
+    "code": "MISSING_API_KEY", 
+    "message": "API key must be provided in X-API-Key header or request body"
+  }
+}
+```
+
+```json Expired API Key
+{
+  "success": false,
+  "error": {
+    "code": "EXPIRED_API_KEY",
+    "message": "The API key has expired",
+    "details": {
+      "expired_at": "2023-10-20T00:00:00Z"
+    }
+  }
+}
+```
+</response-example>
+
+### Examples
+
+<CodeGroup>
+```bash Header Authentication
+curl -X POST \
+  -H "X-API-Key: your-api-key-here" \
+  -H "Content-Type: application/json" \
+  https://your-domain.com/api/validate-api-key
+```
+
+```bash Body Authentication  
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"api_key": "your-api-key-here"}' \
+  https://your-domain.com/api/validate-api-key
+```
+
+```javascript Fetch API
+const response = await fetch('/api/validate-api-key', {
+  method: 'POST',
+  headers: {
+    'X-API-Key': 'your-api-key-here',
+    'Content-Type': 'application/json'
+  }
+});
+
+const result = await response.json();
+
+if (result.success) {
+  console.log('API key is valid:', result.data);
+  console.log('Permissions:', result.data.permissions);
+  console.log('Rate limits:', result.data.rate_limits);
+} else {
+  console.error('Invalid API key:', result.error);
+}
+```
+
+```python Python Requests
+import requests
+
+headers = {
+    'X-API-Key': 'your-api-key-here',
+    'Content-Type': 'application/json'
+}
+
+response = requests.post(
+    'https://your-domain.com/api/validate-api-key',
+    headers=headers
+)
+
+result = response.json()
+
+if result['success']:
+    print(f"API key is valid")
+    print(f"Permissions: {result['data']['permissions']}")
+    print(f"Rate limit: {result['data']['rate_limits']['requests_per_minute']}/min")
+else:
+    print(f"Error: {result['error']['message']}")
+```
+
+```php PHP cURL
+<?php
+$api_key = 'your-api-key-here';
+$url = 'https://your-domain.com/api/validate-api-key';
+
+$headers = [
+    'X-API-Key: ' . $api_key,
+    'Content-Type: application/json'
+];
+
+$ch = curl_init($url);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$result = json_decode($response, true);
+
+if ($result['success']) {
+    echo "API key is valid\n";
+    echo "Permissions: " . implode(', ', $result['data']['permissions']) . "\n";
+} else {
+    echo "Error: " . $result['error']['message'] . "\n";
+}
+
+curl_close($ch);
+?>
+```
+</CodeGroup>
+
+</api-endpoint>
+
+## Response Fields Explained
+
+### Key Information
+
+<AccordionGroup>
+  <Accordion title="valid">
+    **Type**: Boolean  
+    Indicates whether the API key is valid and active.
+  </Accordion>
+
+  <Accordion title="key_info">
+    **Type**: Object  
+    Contains metadata about the API key:
+    - `key_id`: Unique identifier for the key
+    - `created_at`: When the key was created
+    - `last_used`: Last usage timestamp
+    - `usage_count`: Total number of requests made with this key
+  </Accordion>
+
+  <Accordion title="permissions">
+    **Type**: Array of strings  
+    List of operations this API key can perform:
+    - `upload`: Can upload images
+    - `delete`: Can delete images
+    - `list`: Can list images
+    - `config`: Can access configuration
+    - `tags`: Can manage tags
+    - `cleanup`: Can trigger cleanup operations
+  </Accordion>
+
+  <Accordion title="rate_limits">
+    **Type**: Object  
+    Current rate limiting information:
+    - `requests_per_minute`: Maximum requests per minute
+    - `uploads_per_minute`: Maximum uploads per minute
+    - `current_usage`: Current requests in the current minute window
+  </Accordion>
+
+  <Accordion title="expires_at">
+    **Type**: String (ISO 8601) or null  
+    Expiration timestamp for the API key, or null if it doesn't expire.
+  </Accordion>
+
+  <Accordion title="environment">
+    **Type**: String  
+    Environment identifier (e.g., "production", "staging", "development").
+  </Accordion>
+</AccordionGroup>
+
+## Use Cases
+
+### Authentication Testing
+
+```javascript
+// Test if API key works before making other requests
+async function checkApiKey(apiKey) {
+  try {
+    const response = await fetch('/api/validate-api-key', {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey }
+    });
+    
+    const result = await response.json();
+    return result.success;
+  } catch (error) {
+    console.error('Failed to validate API key:', error);
+    return false;
+  }
+}
+
+// Use before making authenticated requests
+if (await checkApiKey(myApiKey)) {
+  // Proceed with authenticated operations
+} else {
+  // Handle invalid key
+}
+```
+
+### Permission Checking
+
+```javascript
+// Check if API key has specific permissions
+async function hasPermission(apiKey, permission) {
+  const response = await fetch('/api/validate-api-key', {
+    method: 'POST',
+    headers: { 'X-API-Key': apiKey }
+  });
+  
+  const result = await response.json();
+  
+  if (!result.success) {
+    return false;
+  }
+  
+  return result.data.permissions.includes(permission);
+}
+
+// Example usage
+if (await hasPermission(apiKey, 'upload')) {
+  // Show upload interface
+} else {
+  // Hide upload functionality
+}
+```
+
+### Rate Limit Monitoring
+
+```javascript
+// Monitor rate limit usage
+async function getRateLimitStatus(apiKey) {
+  const response = await fetch('/api/validate-api-key', {
+    method: 'POST',
+    headers: { 'X-API-Key': apiKey }
+  });
+  
+  const result = await response.json();
+  
+  if (result.success) {
+    const { rate_limits } = result.data;
+    const usagePercentage = (rate_limits.current_usage / rate_limits.requests_per_minute) * 100;
+    
+    return {
+      limit: rate_limits.requests_per_minute,
+      used: rate_limits.current_usage,
+      remaining: rate_limits.requests_per_minute - rate_limits.current_usage,
+      percentage: usagePercentage
+    };
+  }
+  
+  return null;
+}
+
+// Usage
+const status = await getRateLimitStatus(apiKey);
+if (status && status.percentage > 90) {
+  console.warn('Approaching rate limit:', status);
+}
+```
+
+## Error Handling
+
+### Comprehensive Error Handler
+
+```javascript
+async function validateApiKeyWithErrorHandling(apiKey) {
+  try {
+    const response = await fetch('/api/validate-api-key', {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey }
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      return {
+        valid: true,
+        data: result.data
+      };
+    } else {
+      // Handle different error types
+      switch (result.error.code) {
+        case 'INVALID_API_KEY':
+          return {
+            valid: false,
+            error: 'The API key is invalid or has been revoked'
+          };
+          
+        case 'EXPIRED_API_KEY':
+          return {
+            valid: false,
+            error: 'The API key has expired',
+            expiredAt: result.error.details?.expired_at
+          };
+          
+        case 'MISSING_API_KEY':
+          return {
+            valid: false,
+            error: 'No API key provided'
+          };
+          
+        default:
+          return {
+            valid: false,
+            error: result.error.message || 'Unknown error occurred'
+          };
+      }
+    }
+  } catch (error) {
+    return {
+      valid: false,
+      error: 'Network error or server unavailable'
+    };
+  }
+}
+
+// Usage
+const validation = await validateApiKeyWithErrorHandling(apiKey);
+
+if (validation.valid) {
+  console.log('API key is valid:', validation.data);
+} else {
+  console.error('Validation failed:', validation.error);
+}
+```
+
+## Integration Examples
+
+### React Hook
+
+```jsx
+import { useState, useEffect } from 'react';
+
+function useApiKeyValidation(apiKey) {
+  const [validation, setValidation] = useState({
+    loading: true,
+    valid: false,
+    data: null,
+    error: null
+  });
+
+  useEffect(() => {
+    if (!apiKey) {
+      setValidation({
+        loading: false,
+        valid: false,
+        data: null,
+        error: 'No API key provided'
+      });
+      return;
+    }
+
+    const validateKey = async () => {
+      setValidation(prev => ({ ...prev, loading: true }));
+      
+      try {
+        const response = await fetch('/api/validate-api-key', {
+          method: 'POST',
+          headers: { 'X-API-Key': apiKey }
+        });
+        
+        const result = await response.json();
+        
+        setValidation({
+          loading: false,
+          valid: result.success,
+          data: result.success ? result.data : null,
+          error: result.success ? null : result.error.message
+        });
+      } catch (error) {
+        setValidation({
+          loading: false,
+          valid: false,
+          data: null,
+          error: 'Failed to validate API key'
+        });
+      }
+    };
+
+    validateKey();
+  }, [apiKey]);
+
+  return validation;
+}
+
+// Usage in component
+function ApiKeyStatus({ apiKey }) {
+  const { loading, valid, data, error } = useApiKeyValidation(apiKey);
+
+  if (loading) return <div>Validating API key...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (!valid) return <div>Invalid API key</div>;
+
+  return (
+    <div>
+      <p>✅ API key is valid</p>
+      <p>Permissions: {data.permissions.join(', ')}</p>
+      <p>Rate limit: {data.rate_limits.requests_per_minute}/min</p>
+      <p>Current usage: {data.rate_limits.current_usage}</p>
+    </div>
+  );
+}
+```
+
+### Express.js Middleware
+
+```javascript
+// Express middleware to validate API keys
+function validateApiKeyMiddleware(req, res, next) {
+  const apiKey = req.headers['x-api-key'];
+  
+  if (!apiKey) {
+    return res.status(401).json({
+      success: false,
+      error: {
+        code: 'MISSING_API_KEY',
+        message: 'API key is required'
+      }
+    });
+  }
+
+  // Validate with ImageFlow
+  fetch(`${process.env.IMAGEFLOW_URL}/api/validate-api-key`, {
+    method: 'POST',
+    headers: { 'X-API-Key': apiKey }
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      req.apiKeyData = result.data;
+      next();
+    } else {
+      res.status(401).json(result);
+    }
+  })
+  .catch(error => {
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Failed to validate API key'
+      }
+    });
+  });
+}
+
+// Use middleware
+app.use('/api/protected', validateApiKeyMiddleware);
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication Guide" icon="key" href="/api-reference/authentication">
+    Learn more about ImageFlow authentication
+  </Card>
+  
+  <Card title="Upload Images" icon="upload" href="/api-reference/upload">
+    Start uploading images with your validated API key
+  </Card>
+  
+  <Card title="Configuration" icon="gear" href="/api-reference/config">
+    Check system configuration and settings
+  </Card>
+  
+  <Card title="Rate Limits" icon="clock" href="/api-reference/authentication#rate-limiting">
+    Understand rate limiting and best practices
+  </Card>
+</CardGroup>

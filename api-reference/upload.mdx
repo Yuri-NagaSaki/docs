@@ -1,0 +1,825 @@
+---
+title: "Upload Images"
+description: "Upload and process multiple images with tags, expiration, and automatic optimization"
+---
+
+## Image Upload API
+
+The upload endpoint allows you to upload multiple images simultaneously with automatic format optimization, tagging, and expiration management.
+
+<Warning>
+  This endpoint requires authentication. Include your API key in the `X-API-Key` header.
+</Warning>
+
+## Upload Images
+
+<api-endpoint method="POST" endpoint="/api/upload">
+
+Upload one or more images with automatic processing and optimization.
+
+### Authentication
+
+<param-field header="X-API-Key" type="string" required>
+  Your ImageFlow API key for authentication
+</param-field>
+
+### Form Data Parameters
+
+<param-field body="images" type="file[]" required>
+  One or more image files to upload. Supports JPEG, PNG, WebP, AVIF, GIF, TIFF formats.
+</param-field>
+
+<param-field body="tags" type="string" optional>
+  Comma-separated tags to assign to all uploaded images
+</param-field>
+
+<param-field body="expiry" type="string" optional>
+  Expiration time for images. Formats: "30d", "7d", "24h", "never"
+</param-field>
+
+<param-field body="quality" type="integer" optional>
+  Image quality override (1-100). Uses server default if not specified.
+</param-field>
+
+<param-field body="private" type="boolean" optional>
+  Mark images as private (excluded from random endpoint by default)
+</param-field>
+
+### Response
+
+<response-example>
+```json Success Response
+{
+  "success": true,
+  "data": {
+    "uploaded": 3,
+    "failed": 0,
+    "total": 3,
+    "images": [
+      {
+        "id": "img_abc123",
+        "filename": "sunset.jpg",
+        "original_size": 2458032,
+        "processed_size": 856421,
+        "compression_ratio": 0.65,
+        "formats": {
+          "original": {
+            "url": "https://cdn.example.com/images/original/landscape/sunset.jpg",
+            "format": "jpeg",
+            "size": 2458032,
+            "dimensions": "1920x1080"
+          },
+          "webp": {
+            "url": "https://cdn.example.com/images/landscape/webp/sunset.webp",
+            "format": "webp", 
+            "size": 856421,
+            "dimensions": "1920x1080"
+          },
+          "avif": {
+            "url": "https://cdn.example.com/images/landscape/avif/sunset.avif",
+            "format": "avif",
+            "size": 654231,
+            "dimensions": "1920x1080"
+          }
+        },
+        "metadata": {
+          "orientation": "landscape",
+          "aspect_ratio": 1.78,
+          "tags": ["nature", "sunset", "landscape"],
+          "uploaded_at": "2023-10-21T14:30:15Z",
+          "expires_at": "2023-11-21T14:30:15Z"
+        },
+        "processing": {
+          "status": "completed",
+          "duration": 2.3,
+          "quality_used": 80
+        }
+      }
+    ],
+    "processing": {
+      "total_duration": 6.8,
+      "average_per_image": 2.27,
+      "total_size_saved": 4234567
+    },
+    "storage": {
+      "type": "s3",
+      "bucket": "imageflow-prod",
+      "region": "us-east-1"
+    }
+  },
+  "message": "Successfully uploaded and processed 3 images"
+}
+```
+
+```json Partial Success Response
+{
+  "success": true,
+  "data": {
+    "uploaded": 2,
+    "failed": 1,
+    "total": 3,
+    "images": [
+      // Successfully uploaded images...
+    ],
+    "errors": [
+      {
+        "filename": "invalid.txt",
+        "error": "Unsupported file format",
+        "code": "INVALID_FORMAT"
+      }
+    ]
+  },
+  "message": "Uploaded 2 of 3 images successfully"
+}
+```
+
+```json Error Response
+{
+  "success": false,
+  "error": {
+    "code": "FILE_TOO_LARGE",
+    "message": "One or more files exceed the maximum size limit",
+    "details": {
+      "max_size": 10485760,
+      "max_total_size": 104857600,
+      "violated_files": [
+        {
+          "filename": "huge_image.jpg",
+          "size": 15728640
+        }
+      ]
+    }
+  }
+}
+```
+</response-example>
+
+### Upload Examples
+
+<CodeGroup>
+```bash cURL Single Image
+curl -X POST \
+  -H "X-API-Key: your-api-key-here" \
+  -F "images=@photo.jpg" \
+  -F "tags=nature,landscape" \
+  -F "expiry=30d" \
+  https://your-domain.com/api/upload
+```
+
+```bash cURL Multiple Images
+curl -X POST \
+  -H "X-API-Key: your-api-key-here" \
+  -F "images=@photo1.jpg" \
+  -F "images=@photo2.png" \
+  -F "images=@photo3.webp" \
+  -F "tags=portfolio,2023" \
+  -F "quality=85" \
+  https://your-domain.com/api/upload
+```
+
+```javascript Fetch API
+const formData = new FormData();
+
+// Add multiple files
+files.forEach(file => {
+  formData.append('images', file);
+});
+
+// Add metadata
+formData.append('tags', 'nature,landscape,mountains');
+formData.append('expiry', '30d');
+formData.append('quality', '85');
+
+const response = await fetch('/api/upload', {
+  method: 'POST',
+  headers: {
+    'X-API-Key': 'your-api-key-here'
+  },
+  body: formData
+});
+
+const result = await response.json();
+
+if (result.success) {
+  console.log(`Uploaded ${result.data.uploaded} images`);
+  result.data.images.forEach(img => {
+    console.log(`${img.filename}: ${img.formats.webp.url}`);
+  });
+} else {
+  console.error('Upload failed:', result.error);
+}
+```
+
+```python Python Requests
+import requests
+
+files = [
+    ('images', ('photo1.jpg', open('photo1.jpg', 'rb'), 'image/jpeg')),
+    ('images', ('photo2.png', open('photo2.png', 'rb'), 'image/png'))
+]
+
+data = {
+    'tags': 'nature,landscape',
+    'expiry': '30d',
+    'quality': 85
+}
+
+headers = {
+    'X-API-Key': 'your-api-key-here'
+}
+
+response = requests.post(
+    'https://your-domain.com/api/upload',
+    files=files,
+    data=data,
+    headers=headers
+)
+
+result = response.json()
+
+if result['success']:
+    print(f"Uploaded {result['data']['uploaded']} images")
+    for img in result['data']['images']:
+        print(f"{img['filename']}: {img['formats']['webp']['url']}")
+else:
+    print(f"Upload failed: {result['error']['message']}")
+
+# Close file handles
+for _, (_, file_obj, _) in files:
+    file_obj.close()
+```
+
+```php PHP cURL
+<?php
+$api_key = 'your-api-key-here';
+$url = 'https://your-domain.com/api/upload';
+
+$files = [
+    'images[]' => new CURLFile('photo1.jpg', 'image/jpeg', 'photo1.jpg'),
+    'images[]' => new CURLFile('photo2.png', 'image/png', 'photo2.png')
+];
+
+$data = [
+    'tags' => 'nature,landscape',
+    'expiry' => '30d',
+    'quality' => 85
+];
+
+$postData = array_merge($files, $data);
+
+$headers = [
+    'X-API-Key: ' . $api_key
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$result = json_decode($response, true);
+
+if ($result['success']) {
+    echo "Uploaded " . $result['data']['uploaded'] . " images\n";
+    foreach ($result['data']['images'] as $img) {
+        echo $img['filename'] . ": " . $img['formats']['webp']['url'] . "\n";
+    }
+} else {
+    echo "Upload failed: " . $result['error']['message'] . "\n";
+}
+
+curl_close($ch);
+?>
+```
+</CodeGroup>
+
+</api-endpoint>
+
+## File Format Support
+
+### Supported Input Formats
+
+<CardGroup cols={3}>
+  <Card title="JPEG" icon="image">
+    - Universal support
+    - Lossy compression
+    - No transparency
+  </Card>
+  
+  <Card title="PNG" icon="image">
+    - Lossless compression
+    - Transparency support
+    - Larger file sizes
+  </Card>
+  
+  <Card title="WebP" icon="image">
+    - Modern format
+    - Lossy/lossless modes
+    - Transparency support
+  </Card>
+  
+  <Card title="AVIF" icon="image">
+    - Next-gen format
+    - Excellent compression
+    - Transparency support
+  </Card>
+  
+  <Card title="GIF" icon="image">
+    - Animation support
+    - Limited color palette
+    - Lossless compression
+  </Card>
+  
+  <Card title="TIFF" icon="image">
+    - Professional format
+    - Very high quality
+    - Large file sizes
+  </Card>
+</CardGroup>
+
+### Output Format Generation
+
+ImageFlow automatically generates optimized versions:
+
+1. **Original Format**: Preserved exactly as uploaded
+2. **WebP Version**: Modern format with good browser support
+3. **AVIF Version**: Next-generation format with superior compression
+4. **Responsive Sizes**: Multiple dimensions for responsive serving (if enabled)
+
+## Upload Limits and Validation
+
+### File Size Limits
+
+<AccordionGroup>
+  <Accordion title="Per File Limits">
+    - **Maximum file size**: 10MB per image (configurable)
+    - **Minimum file size**: 1KB
+    - **Dimension limits**: Up to 8192x8192 pixels
+    - **Minimum dimensions**: 32x32 pixels
+  </Accordion>
+
+  <Accordion title="Request Limits">
+    - **Maximum files per request**: 20 images (configurable)
+    - **Maximum total size**: 100MB per request (configurable)
+    - **Request timeout**: 120 seconds
+    - **Processing timeout**: 30 seconds per image
+  </Accordion>
+</AccordionGroup>
+
+### Validation Rules
+
+Images are validated on upload:
+
+```javascript
+// Validation criteria
+const validation = {
+  fileSize: {
+    min: 1024,        // 1KB
+    max: 10485760     // 10MB
+  },
+  dimensions: {
+    minWidth: 32,
+    minHeight: 32,
+    maxWidth: 8192,
+    maxHeight: 8192
+  },
+  formats: [
+    'image/jpeg',
+    'image/png', 
+    'image/webp',
+    'image/avif',
+    'image/gif',
+    'image/tiff'
+  ]
+};
+```
+
+## Tagging System
+
+### Tag Formatting
+
+<AccordionGroup>
+  <Accordion title="Tag Rules">
+    - **Separator**: Comma-separated values
+    - **Length**: 1-50 characters per tag
+    - **Characters**: Alphanumeric, hyphens, underscores
+    - **Case**: Case-insensitive (stored lowercase)
+    - **Maximum**: 20 tags per image
+  </Accordion>
+
+  <Accordion title="Reserved Tags">
+    Some tags are automatically added by the system:
+    - `landscape` / `portrait`: Based on orientation
+    - `animated`: For GIF files with animation
+    - `transparent`: For images with transparency
+    - `private`: For private uploads
+  </Accordion>
+
+  <Accordion title="Tag Examples">
+    ```bash
+    # Good tags
+    tags=nature,landscape,mountains,sunset,photography
+    tags=product,electronics,smartphone,review
+    tags=ui-design,web-development,portfolio
+    
+    # Invalid tags (will be filtered)
+    tags=nature,,mountains  # Empty tag ignored
+    tags=tag-with-spaces    # Spaces not allowed
+    tags=verylongtagthatexceedsfiftycharacterslimitandwillberejected
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Expiration Management
+
+### Expiration Options
+
+<AccordionGroup>
+  <Accordion title="Time Formats">
+    Flexible expiration formats:
+    ```bash
+    # Days
+    expiry=30d    # 30 days from now
+    expiry=7d     # 7 days from now
+    expiry=1d     # 1 day from now
+    
+    # Hours
+    expiry=24h    # 24 hours from now
+    expiry=12h    # 12 hours from now
+    expiry=1h     # 1 hour from now
+    
+    # Never expire
+    expiry=never  # No expiration
+    ```
+  </Accordion>
+
+  <Accordion title="Expiration Behavior">
+    - **Automatic cleanup**: Expired images are removed during cleanup cycles
+    - **Grace period**: 24-hour grace period before actual deletion
+    - **Metadata retention**: Metadata kept for audit purposes
+    - **CDN purging**: Cached versions automatically purged
+  </Accordion>
+</AccordionGroup>
+
+## Processing Pipeline
+
+### Processing Stages
+
+<Steps>
+  <Step title="Upload Validation">
+    - File format validation
+    - Size and dimension checks  
+    - Virus scanning (if enabled)
+    - Duplicate detection
+  </Step>
+  
+  <Step title="Image Analysis">
+    - Metadata extraction
+    - Orientation detection
+    - Quality assessment
+    - Color profile analysis
+  </Step>
+  
+  <Step title="Format Conversion">
+    - WebP generation
+    - AVIF generation  
+    - Quality optimization
+    - Progressive encoding
+  </Step>
+  
+  <Step title="Storage & Indexing">
+    - File storage (local/S3)
+    - Metadata indexing
+    - CDN distribution
+    - Database updates
+  </Step>
+</Steps>
+
+### Processing Status Tracking
+
+```javascript
+// Real-time processing updates via WebSocket
+const ws = new WebSocket('wss://your-domain.com/ws');
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  
+  switch (data.type) {
+    case 'upload-progress':
+      console.log(`Upload progress: ${data.progress}%`);
+      break;
+      
+    case 'processing-start':
+      console.log(`Processing started for ${data.filename}`);
+      break;
+      
+    case 'processing-complete':
+      console.log(`Processing complete: ${data.image_id}`);
+      break;
+      
+    case 'processing-error':
+      console.error(`Processing failed: ${data.error}`);
+      break;
+  }
+};
+```
+
+## Error Handling
+
+### Common Upload Errors
+
+<AccordionGroup>
+  <Accordion title="File Too Large">
+    ```json
+    {
+      "success": false,
+      "error": {
+        "code": "FILE_TOO_LARGE",
+        "message": "File exceeds maximum size limit",
+        "details": {
+          "filename": "huge_image.jpg",
+          "size": 15728640,
+          "max_size": 10485760
+        }
+      }
+    }
+    ```
+    
+    **Solutions:**
+    - Compress image before upload
+    - Use image editing tools to reduce file size
+    - Check server configuration for limits
+  </Accordion>
+
+  <Accordion title="Unsupported Format">
+    ```json
+    {
+      "success": false,
+      "error": {
+        "code": "UNSUPPORTED_FORMAT",
+        "message": "File format not supported",
+        "details": {
+          "filename": "document.pdf",
+          "detected_type": "application/pdf",
+          "supported_types": ["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif", "image/tiff"]
+        }
+      }
+    }
+    ```
+    
+    **Solutions:**
+    - Convert to supported format
+    - Check file extension matches content
+    - Verify file is not corrupted
+  </Accordion>
+
+  <Accordion title="Processing Failed">
+    ```json
+    {
+      "success": false,
+      "error": {
+        "code": "PROCESSING_FAILED",
+        "message": "Failed to process image",
+        "details": {
+          "filename": "corrupted.jpg",
+          "stage": "format_conversion",
+          "reason": "Invalid image data"
+        }
+      }
+    }
+    ```
+    
+    **Solutions:**
+    - Verify image file integrity
+    - Try re-saving image in different software
+    - Check for unsupported image features
+  </Accordion>
+
+  <Accordion title="Rate Limit Exceeded">
+    ```json
+    {
+      "success": false,
+      "error": {
+        "code": "RATE_LIMIT_EXCEEDED",
+        "message": "Upload rate limit exceeded",
+        "details": {
+          "limit": 50,
+          "window": "1 minute",
+          "retry_after": 23
+        }
+      }
+    }
+    ```
+    
+    **Solutions:**
+    - Wait before retrying
+    - Implement exponential backoff
+    - Contact support for higher limits
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Usage
+
+### Batch Upload with Progress Tracking
+
+```javascript
+class BatchUploader {
+  constructor(apiKey, options = {}) {
+    this.apiKey = apiKey;
+    this.baseUrl = options.baseUrl || '';
+    this.chunkSize = options.chunkSize || 5; // Upload 5 files at a time
+    this.retryAttempts = options.retryAttempts || 3;
+  }
+
+  async uploadBatch(files, metadata = {}) {
+    const results = [];
+    const chunks = this.chunkArray(files, this.chunkSize);
+    
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      console.log(`Uploading chunk ${i + 1}/${chunks.length}`);
+      
+      try {
+        const result = await this.uploadChunk(chunk, metadata);
+        results.push(result);
+        
+        // Progress callback
+        if (this.onProgress) {
+          this.onProgress({
+            completed: (i + 1) * this.chunkSize,
+            total: files.length,
+            percentage: Math.min(((i + 1) * this.chunkSize / files.length) * 100, 100)
+          });
+        }
+      } catch (error) {
+        console.error(`Chunk ${i + 1} failed:`, error);
+        results.push({ error: error.message });
+      }
+    }
+    
+    return results;
+  }
+
+  async uploadChunk(files, metadata) {
+    const formData = new FormData();
+    
+    files.forEach(file => {
+      formData.append('images', file);
+    });
+    
+    Object.entries(metadata).forEach(([key, value]) => {
+      formData.append(key, value);
+    });
+
+    const response = await fetch(`${this.baseUrl}/api/upload`, {
+      method: 'POST',
+      headers: {
+        'X-API-Key': this.apiKey
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  chunkArray(array, size) {
+    const chunks = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
+  }
+}
+
+// Usage
+const uploader = new BatchUploader('your-api-key');
+
+uploader.onProgress = (progress) => {
+  console.log(`Progress: ${progress.percentage.toFixed(1)}%`);
+};
+
+const results = await uploader.uploadBatch(files, {
+  tags: 'batch-upload,portfolio',
+  expiry: '30d'
+});
+```
+
+### React Upload Component
+
+```jsx
+import React, { useState, useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
+
+function ImageUploader({ apiKey, onUploadComplete }) {
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState(null);
+
+  const onDrop = useCallback(async (acceptedFiles) => {
+    setUploading(true);
+    setError(null);
+    setProgress(0);
+
+    const formData = new FormData();
+    
+    acceptedFiles.forEach(file => {
+      formData.append('images', file);
+    });
+    
+    formData.append('tags', 'uploaded-via-react');
+    formData.append('expiry', '30d');
+
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'X-API-Key': apiKey
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setProgress(100);
+        if (onUploadComplete) {
+          onUploadComplete(result.data);
+        }
+      } else {
+        setError(result.error.message);
+      }
+    } catch (err) {
+      setError('Upload failed: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  }, [apiKey, onUploadComplete]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif', '.tiff']
+    },
+    maxFiles: 20,
+    maxSize: 10 * 1024 * 1024 // 10MB
+  });
+
+  return (
+    <div className="upload-container">
+      <div
+        {...getRootProps()}
+        className={`dropzone ${isDragActive ? 'active' : ''}`}
+      >
+        <input {...getInputProps()} />
+        {uploading ? (
+          <div>
+            <p>Uploading... {progress}%</p>
+            <progress value={progress} max="100" />
+          </div>
+        ) : (
+          <p>
+            {isDragActive
+              ? 'Drop the files here...'
+              : 'Drag & drop images here, or click to select files'
+            }
+          </p>
+        )}
+      </div>
+      
+      {error && (
+        <div className="error">
+          Error: {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default ImageUploader;
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Image Management" icon="images" href="/api-reference/images">
+    List and manage your uploaded images
+  </Card>
+  
+  <Card title="Tag Management" icon="tag" href="/api-reference/tags">
+    Organize images with tags and categories
+  </Card>
+  
+  <Card title="Delete Images" icon="trash" href="/api-reference/delete">
+    Remove unwanted images from your collection
+  </Card>
+  
+  <Card title="Frontend Upload" icon="window" href="/frontend/upload">
+    Learn about the web interface upload features
+  </Card>
+</CardGroup>

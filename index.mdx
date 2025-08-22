@@ -1,97 +1,107 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: Introduction
+description: 'ImageFlow: A modern, high-performance image service system with automatic optimization and smart distribution'
 ---
 
-## Setting up
+<img
+  className="block dark:hidden"
+  src="/images/hero-light.png"
+  alt="Hero Light"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/hero-dark.png"
+  alt="Hero Dark"
+/>
 
-Get your documentation site up and running in minutes.
+## What is ImageFlow?
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+ImageFlow is a modern, full-stack image service system designed for high-performance image management and distribution. Built with Go and Next.js, it automatically optimizes images for different devices and browsers while providing a beautiful, intuitive interface for image management.
 
-## Make it yours
+## Key Features
 
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
-
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
+    title="Smart Image Optimization"
     icon="image"
-    href="/essentials/images"
   >
-    Display images and other media.
+    Automatically converts images to WebP and AVIF formats for optimal performance and compatibility
   </Card>
   <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
+    title="Device-Aware Serving"
+    icon="mobile"
   >
-    Write once and reuse across your docs.
+    Intelligently serves landscape or portrait images based on device type and screen orientation
   </Card>
-</Columns>
+  <Card
+    title="Flexible Storage"
+    icon="database"
+  >
+    Supports both local filesystem and S3-compatible storage with seamless switching
+  </Card>
+  <Card
+    title="Modern Frontend"
+    icon="window"
+  >
+    Beautiful React-based interface with drag-and-drop upload, masonry layout, and dark mode
+  </Card>
+</CardGroup>
 
-## Need inspiration?
+## Architecture Overview
+
+ImageFlow follows a modern microservices architecture:
+
+### Backend (Go 1.23+)
+- **High-Performance Processing**: Uses libvips for lightning-fast image conversion
+- **Async Worker Pool**: Background processing with configurable concurrency
+- **Redis Metadata**: Fast metadata storage with file-based fallback
+- **API Authentication**: Secure API key-based authentication system
+
+### Frontend (Next.js 14)
+- **Static Export**: Pre-built and embedded in the Go binary for single-file deployment
+- **Responsive Design**: Mobile-first design with device detection
+- **Real-time Updates**: Live upload progress and instant image management
+
+### Storage Options
+- **Local Storage**: Perfect for development and small deployments
+- **S3 Compatible**: Production-ready with any S3-compatible storage service
+- **Custom Domains**: Support for CDN and custom domain configurations
+
+## Use Cases
+
+<AccordionGroup>
+  <Accordion title="Content Management Systems">
+    Integrate ImageFlow as a media service for your CMS, providing automatic image optimization and responsive serving.
+  </Accordion>
+
+  <Accordion title="E-commerce Platforms">
+    Serve product images optimized for different devices and connection speeds to improve conversion rates.
+  </Accordion>
+
+  <Accordion title="Portfolio Websites">
+    Showcase high-quality images with automatic format optimization and beautiful gallery layouts.
+  </Accordion>
+
+  <Accordion title="Mobile Applications">
+    Provide a backend service for mobile apps with efficient image delivery and management APIs.
+  </Accordion>
+</AccordionGroup>
+
+## Performance Benefits
+
+- **Up to 80% smaller file sizes** with WebP/AVIF conversion
+- **Faster loading times** through format optimization and device-specific serving
+- **Reduced bandwidth costs** with intelligent compression
+- **Better SEO scores** from improved page load speeds
+
+## Getting Started
+
+Ready to get started with ImageFlow? Check out our [Quick Start Guide](/quickstart) to have your image service running in minutes.
 
 <Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
+  title="Quick Start"
+  icon="play"
+  href="/quickstart"
 >
-  Browse our showcase of exceptional documentation sites.
+  Get ImageFlow up and running in under 5 minutes
 </Card>

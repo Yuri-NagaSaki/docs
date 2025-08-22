@@ -1,0 +1,457 @@
+---
+title: "Environment Configuration"
+description: "Complete guide to configuring ImageFlow environment variables and settings"
+---
+
+## Environment Variables
+
+ImageFlow is configured using environment variables, typically stored in a `.env` file. This approach ensures secure configuration management and easy deployment across different environments.
+
+## Configuration File Structure
+
+Create a `.env` file in your ImageFlow root directory:
+
+```env
+# Required Settings
+API_KEY=your-secure-api-key-here
+STORAGE_TYPE=local
+LOCAL_STORAGE_PATH=./static/images
+
+# Server Configuration
+PORT=8080
+HOST=0.0.0.0
+DEBUG=false
+
+# Redis Configuration
+REDIS_ENABLED=true
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+METADATA_STORE_TYPE=redis
+
+# Image Processing
+MAX_UPLOAD_COUNT=20
+IMAGE_QUALITY=80
+WORKER_THREADS=4
+SPEED=5
+
+# S3 Configuration (when STORAGE_TYPE=s3)
+S3_ENDPOINT=s3.amazonaws.com
+S3_REGION=us-east-1
+S3_BUCKET=your-bucket-name
+S3_ACCESS_KEY=your-access-key
+S3_SECRET_KEY=your-secret-key
+CUSTOM_DOMAIN=cdn.yourdomain.com
+
+# Security
+CORS_ORIGINS=*
+CORS_METHODS=GET,POST,PUT,DELETE,OPTIONS
+CORS_HEADERS=*
+
+# Logging
+LOG_LEVEL=info
+LOG_FORMAT=json
+LOG_FILE=./logs/imageflow.log
+```
+
+## Required Settings
+
+<AccordionGroup>
+  <Accordion title="API_KEY">
+    **Type**: String  
+    **Required**: Yes  
+    **Description**: Secure API key for authenticated endpoints
+
+    ```env
+    API_KEY=your-secure-api-key-here
+    ```
+
+    <Warning>Use a strong, randomly generated key. This key protects your upload and management endpoints.</Warning>
+  </Accordion>
+
+  <Accordion title="STORAGE_TYPE">
+    **Type**: String  
+    **Required**: Yes  
+    **Options**: `local`, `s3`  
+    **Description**: Storage backend type
+
+    ```env
+    # Local filesystem storage
+    STORAGE_TYPE=local
+
+    # S3-compatible storage
+    STORAGE_TYPE=s3
+    ```
+  </Accordion>
+
+  <Accordion title="LOCAL_STORAGE_PATH">
+    **Type**: String  
+    **Required**: When `STORAGE_TYPE=local`  
+    **Default**: `./static/images`  
+    **Description**: Directory path for local image storage
+
+    ```env
+    # Relative path
+    LOCAL_STORAGE_PATH=./static/images
+
+    # Absolute path (recommended for production)
+    LOCAL_STORAGE_PATH=/var/lib/imageflow/images
+    ```
+
+    <Tip>Use absolute paths in production for better reliability</Tip>
+  </Accordion>
+</AccordionGroup>
+
+## Server Configuration
+
+<AccordionGroup>
+  <Accordion title="PORT">
+    **Type**: Integer  
+    **Default**: `8080`  
+    **Description**: HTTP server port
+
+    ```env
+    PORT=8080
+    ```
+  </Accordion>
+
+  <Accordion title="HOST">
+    **Type**: String  
+    **Default**: `0.0.0.0`  
+    **Description**: HTTP server bind address
+
+    ```env
+    # Bind to all interfaces
+    HOST=0.0.0.0
+
+    # Bind to localhost only
+    HOST=127.0.0.1
+    ```
+  </Accordion>
+
+  <Accordion title="DEBUG">
+    **Type**: Boolean  
+    **Default**: `false`  
+    **Description**: Enable debug mode
+
+    ```env
+    DEBUG=true
+    ```
+
+    <Warning>Never enable debug mode in production</Warning>
+  </Accordion>
+</AccordionGroup>
+
+## Image Processing Settings
+
+<AccordionGroup>
+  <Accordion title="MAX_UPLOAD_COUNT">
+    **Type**: Integer  
+    **Default**: `20`  
+    **Range**: `1-100`  
+    **Description**: Maximum images per upload request
+
+    ```env
+    MAX_UPLOAD_COUNT=20
+    ```
+  </Accordion>
+
+  <Accordion title="IMAGE_QUALITY">
+    **Type**: Integer  
+    **Default**: `80`  
+    **Range**: `1-100`  
+    **Description**: Image compression quality
+
+    ```env
+    # High quality (larger files)
+    IMAGE_QUALITY=95
+
+    # Balanced quality
+    IMAGE_QUALITY=80
+
+    # Lower quality (smaller files)
+    IMAGE_QUALITY=60
+    ```
+  </Accordion>
+
+  <Accordion title="WORKER_THREADS">
+    **Type**: Integer  
+    **Default**: `4`  
+    **Description**: Number of parallel image processing threads
+
+    ```env
+    # Conservative (low CPU usage)
+    WORKER_THREADS=2
+
+    # Balanced
+    WORKER_THREADS=4
+
+    # Aggressive (high performance)
+    WORKER_THREADS=8
+    ```
+
+    <Tip>Set to the number of CPU cores for optimal performance</Tip>
+  </Accordion>
+
+  <Accordion title="SPEED">
+    **Type**: Integer  
+    **Default**: `5`  
+    **Range**: `0-8`  
+    **Description**: Image encoding speed vs compression trade-off
+
+    ```env
+    # Slower encoding, better compression
+    SPEED=0
+
+    # Balanced
+    SPEED=5
+
+    # Faster encoding, less compression
+    SPEED=8
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Security Settings
+
+<AccordionGroup>
+  <Accordion title="CORS_ORIGINS">
+    **Type**: String  
+    **Default**: `*`  
+    **Description**: Allowed CORS origins
+
+    ```env
+    # Allow all origins (development only)
+    CORS_ORIGINS=*
+
+    # Specific domains
+    CORS_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
+
+    # Local development
+    CORS_ORIGINS=http://localhost:3000,http://localhost:8080
+    ```
+  </Accordion>
+
+  <Accordion title="CORS_METHODS">
+    **Type**: String  
+    **Default**: `GET,POST,PUT,DELETE,OPTIONS`  
+    **Description**: Allowed HTTP methods
+
+    ```env
+    CORS_METHODS=GET,POST,PUT,DELETE,OPTIONS
+    ```
+  </Accordion>
+
+  <Accordion title="CORS_HEADERS">
+    **Type**: String  
+    **Default**: `*`  
+    **Description**: Allowed request headers
+
+    ```env
+    CORS_HEADERS=Content-Type,Authorization,X-API-Key
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Logging Configuration
+
+<AccordionGroup>
+  <Accordion title="LOG_LEVEL">
+    **Type**: String  
+    **Default**: `info`  
+    **Options**: `debug`, `info`, `warn`, `error`  
+    **Description**: Minimum log level
+
+    ```env
+    # Development
+    LOG_LEVEL=debug
+
+    # Production
+    LOG_LEVEL=info
+    ```
+  </Accordion>
+
+  <Accordion title="LOG_FORMAT">
+    **Type**: String  
+    **Default**: `json`  
+    **Options**: `json`, `text`  
+    **Description**: Log output format
+
+    ```env
+    # Structured logging (recommended)
+    LOG_FORMAT=json
+
+    # Human-readable logging
+    LOG_FORMAT=text
+    ```
+  </Accordion>
+
+  <Accordion title="LOG_FILE">
+    **Type**: String  
+    **Default**: `./logs/imageflow.log`  
+    **Description**: Log file path
+
+    ```env
+    LOG_FILE=./logs/imageflow.log
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Environment-Specific Configurations
+
+<Tabs>
+  <Tab title="Development">
+    ```env
+    # Development Configuration
+    API_KEY=dev-api-key-12345
+    STORAGE_TYPE=local
+    LOCAL_STORAGE_PATH=./static/images
+    PORT=8080
+    DEBUG=true
+    REDIS_ENABLED=false
+    LOG_LEVEL=debug
+    LOG_FORMAT=text
+    CORS_ORIGINS=*
+    ```
+  </Tab>
+
+  <Tab title="Production">
+    ```env
+    # Production Configuration
+    API_KEY=prod-secure-key-xyz789
+    STORAGE_TYPE=s3
+    S3_BUCKET=prod-imageflow-bucket
+    S3_REGION=us-east-1
+    PORT=8080
+    DEBUG=false
+    REDIS_ENABLED=true
+    REDIS_HOST=redis.internal
+    LOG_LEVEL=info
+    LOG_FORMAT=json
+    CORS_ORIGINS=https://yourdomain.com
+    ```
+  </Tab>
+
+  <Tab title="Docker">
+    ```env
+    # Docker Configuration
+    API_KEY=docker-api-key-abc123
+    STORAGE_TYPE=local
+    LOCAL_STORAGE_PATH=/app/static/images
+    PORT=8080
+    HOST=0.0.0.0
+    REDIS_ENABLED=true
+    REDIS_HOST=redis
+    REDIS_PORT=6379
+    LOG_LEVEL=info
+    ```
+  </Tab>
+</Tabs>
+
+## Configuration Validation
+
+ImageFlow validates configuration on startup. Common validation errors:
+
+<AccordionGroup>
+  <Accordion title="Missing API_KEY">
+    ```
+    Error: API_KEY is required
+    ```
+    **Solution**: Set a strong API key in your `.env` file
+  </Accordion>
+
+  <Accordion title="Invalid STORAGE_TYPE">
+    ```
+    Error: STORAGE_TYPE must be 'local' or 's3'
+    ```
+    **Solution**: Use a valid storage type
+  </Accordion>
+
+  <Accordion title="Missing S3 Configuration">
+    ```
+    Error: S3_BUCKET is required when STORAGE_TYPE=s3
+    ```
+    **Solution**: Configure all required S3 variables
+  </Accordion>
+
+  <Accordion title="Invalid Port">
+    ```
+    Error: PORT must be between 1 and 65535
+    ```
+    **Solution**: Use a valid port number
+  </Accordion>
+</AccordionGroup>
+
+## Loading Configuration
+
+ImageFlow loads configuration in this order:
+
+1. **Environment variables** (highest priority)
+2. **`.env` file** in working directory
+3. **Default values** (lowest priority)
+
+<CodeGroup>
+  ```bash Environment Variables
+  export API_KEY="your-api-key"
+  export STORAGE_TYPE="local"
+  ./imageflow
+  ```
+
+  ```bash .env File
+  # Create .env file
+  echo "API_KEY=your-api-key" > .env
+  echo "STORAGE_TYPE=local" >> .env
+  ./imageflow
+  ```
+
+  ```bash Docker Environment
+  docker run -e API_KEY="your-api-key" \
+             -e STORAGE_TYPE="local" \
+             imageflow:latest
+  ```
+</CodeGroup>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Security">
+    - Use strong, randomly generated API keys
+    - Never commit `.env` files to version control
+    - Use HTTPS in production
+    - Restrict CORS origins to your domains only
+  </Accordion>
+
+  <Accordion title="Performance">
+    - Set `WORKER_THREADS` to match your CPU cores
+    - Use Redis for better performance
+    - Optimize `IMAGE_QUALITY` for your use case
+    - Use S3 for production deployments
+  </Accordion>
+
+  <Accordion title="Monitoring">
+    - Set appropriate log levels
+    - Monitor log files for errors
+    - Use structured logging in production
+    - Set up log rotation
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Storage Configuration" icon="database" href="/configuration/storage">
+    Configure local or S3 storage backends
+  </Card>
+  
+  <Card title="Redis Setup" icon="memory" href="/configuration/redis">
+    Set up Redis for improved performance
+  </Card>
+  
+  <Card title="Image Processing" icon="image" href="/configuration/image-processing">
+    Optimize image processing settings
+  </Card>
+  
+  <Card title="Production Deployment" icon="server" href="/deployment/production">
+    Deploy ImageFlow to production
+  </Card>
+</CardGroup>

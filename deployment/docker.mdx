@@ -1,0 +1,835 @@
+---
+title: "Docker Deployment"
+description: "Deploy ImageFlow using Docker and Docker Compose for production environments"
+---
+
+## Docker Overview
+
+Docker provides the easiest and most reliable way to deploy ImageFlow. Our Docker setup includes everything you need: the Go backend, embedded frontend, and optional Redis for optimal performance.
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket">
+    Get ImageFlow running in minutes with Docker Compose
+  </Card>
+  
+  <Card title="Production Ready" icon="shield">
+    Includes health checks, volume management, and restart policies
+  </Card>
+  
+  <Card title="Scalable" icon="expand">
+    Easy horizontal scaling with load balancers
+  </Card>
+  
+  <Card title="Isolated" icon="box">
+    Complete environment isolation and dependency management
+  </Card>
+</CardGroup>
+
+## Prerequisites
+
+### System Requirements
+
+- **Docker**: Version 20.10 or later
+- **Docker Compose**: Version 2.0 or later (recommended)
+- **System Memory**: Minimum 2GB RAM, 4GB+ recommended
+- **Disk Space**: 10GB+ free space
+- **CPU**: 2+ cores recommended
+
+### Install Docker
+
+<Tabs>
+  <Tab title="Ubuntu/Debian">
+    ```bash
+    # Update package index
+    sudo apt update
+
+    # Install required packages
+    sudo apt install apt-transport-https ca-certificates curl software-properties-common
+
+    # Add Docker GPG key
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+    # Add Docker repository
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    # Install Docker
+    sudo apt update
+    sudo apt install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+    # Start Docker service
+    sudo systemctl start docker
+    sudo systemctl enable docker
+
+    # Add user to docker group
+    sudo usermod -aG docker $USER
+    newgrp docker
+    ```
+  </Tab>
+
+  <Tab title="CentOS/RHEL">
+    ```bash
+    # Install required packages
+    sudo yum install -y yum-utils
+
+    # Add Docker repository
+    sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+    # Install Docker
+    sudo yum install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+    # Start Docker service
+    sudo systemctl start docker
+    sudo systemctl enable docker
+
+    # Add user to docker group
+    sudo usermod -aG docker $USER
+    newgrp docker
+    ```
+  </Tab>
+
+  <Tab title="macOS">
+    ```bash
+    # Using Homebrew
+    brew install --cask docker
+
+    # Or download Docker Desktop from:
+    # https://www.docker.com/products/docker-desktop
+
+    # Start Docker Desktop application
+    open -a Docker
+    ```
+  </Tab>
+
+  <Tab title="Windows">
+    ```powershell
+    # Download Docker Desktop for Windows:
+    # https://www.docker.com/products/docker-desktop
+
+    # Or use Chocolatey
+    choco install docker-desktop
+
+    # Or use winget
+    winget install Docker.DockerDesktop
+    ```
+  </Tab>
+</Tabs>
+
+## Docker Compose Deployment
+
+### Basic Setup
+
+<Steps>
+  <Step title="Download ImageFlow">
+    ```bash
+    # Clone the repository
+    git clone https://github.com/username/ImageFlow.git
+    cd ImageFlow
+
+    # Or download release
+    wget https://github.com/username/ImageFlow/archive/refs/tags/v1.0.0.tar.gz
+    tar -xzf v1.0.0.tar.gz
+    cd ImageFlow-1.0.0
+    ```
+  </Step>
+
+  <Step title="Configure Environment">
+    ```bash
+    # Copy example configuration
+    cp .env.example .env
+
+    # Edit configuration
+    nano .env
+    ```
+
+    **Required Configuration:**
+    ```env
+    # API key for authentication
+    API_KEY=your-secure-api-key-here
+
+    # Storage configuration
+    STORAGE_TYPE=local
+    LOCAL_STORAGE_PATH=/app/static/images
+
+    # Redis configuration
+    REDIS_ENABLED=true
+    REDIS_HOST=redis
+    REDIS_PORT=6379
+    ```
+  </Step>
+
+  <Step title="Start Services">
+    ```bash
+    # Start all services
+    docker-compose up -d
+
+    # Check status
+    docker-compose ps
+
+    # View logs
+    docker-compose logs -f
+    ```
+  </Step>
+
+  <Step title="Verify Deployment">
+    ```bash
+    # Check ImageFlow is running
+    curl http://localhost:8080/api/config
+
+    # Test Redis connection
+    docker-compose exec redis redis-cli ping
+
+    # Check container health
+    docker-compose exec imageflow healthcheck
+    ```
+  </Step>
+</Tabs>
+
+### Docker Compose Configurations
+
+<Tabs>
+  <Tab title="Standard Setup">
+    **File: `docker-compose.yml`**
+    ```yaml
+    version: '3.8'
+
+    services:
+      imageflow:
+        image: imageflow:latest
+        container_name: imageflow
+        ports:
+          - "8080:8080"
+        environment:
+          - API_KEY=${API_KEY}
+          - STORAGE_TYPE=local
+          - LOCAL_STORAGE_PATH=/app/static/images
+          - REDIS_ENABLED=true
+          - REDIS_HOST=redis
+          - REDIS_PORT=6379
+        volumes:
+          - imageflow-images:/app/static/images
+          - imageflow-logs:/app/logs
+        depends_on:
+          - redis
+        restart: unless-stopped
+        healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost:8080/api/config"]
+          interval: 30s
+          timeout: 10s
+          retries: 3
+          start_period: 40s
+
+      redis:
+        image: redis:7-alpine
+        container_name: imageflow-redis
+        ports:
+          - "6379:6379"
+        volumes:
+          - redis-data:/data
+        restart: unless-stopped
+        command: redis-server --appendonly yes
+        healthcheck:
+          test: ["CMD", "redis-cli", "ping"]
+          interval: 30s
+          timeout: 5s
+          retries: 3
+
+    volumes:
+      imageflow-images:
+      imageflow-logs:
+      redis-data:
+
+    networks:
+      default:
+        name: imageflow-network
+    ```
+  </Tab>
+
+  <Tab title="Production Setup">
+    **File: `docker-compose.prod.yml`**
+    ```yaml
+    version: '3.8'
+
+    services:
+      imageflow:
+        image: imageflow:latest
+        container_name: imageflow-prod
+        ports:
+          - "8080:8080"
+        environment:
+          - API_KEY=${API_KEY}
+          - STORAGE_TYPE=s3
+          - S3_ENDPOINT=${S3_ENDPOINT}
+          - S3_REGION=${S3_REGION}
+          - S3_BUCKET=${S3_BUCKET}
+          - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+          - S3_SECRET_KEY=${S3_SECRET_KEY}
+          - REDIS_ENABLED=true
+          - REDIS_HOST=redis
+          - REDIS_PASSWORD=${REDIS_PASSWORD}
+          - LOG_LEVEL=info
+          - WORKER_THREADS=8
+        volumes:
+          - imageflow-logs:/app/logs
+          - /etc/ssl/certs:/etc/ssl/certs:ro
+        depends_on:
+          - redis
+        restart: unless-stopped
+        deploy:
+          resources:
+            limits:
+              memory: 2G
+              cpus: '2.0'
+            reservations:
+              memory: 1G
+              cpus: '1.0'
+        healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost:8080/api/config"]
+          interval: 30s
+          timeout: 10s
+          retries: 3
+
+      redis:
+        image: redis:7-alpine
+        container_name: imageflow-redis-prod
+        environment:
+          - REDIS_PASSWORD=${REDIS_PASSWORD}
+        volumes:
+          - redis-data:/data
+          - ./redis.conf:/usr/local/etc/redis/redis.conf
+        restart: unless-stopped
+        command: redis-server /usr/local/etc/redis/redis.conf
+        deploy:
+          resources:
+            limits:
+              memory: 1G
+              cpus: '0.5'
+        healthcheck:
+          test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+          interval: 30s
+          timeout: 5s
+          retries: 3
+
+      nginx:
+        image: nginx:alpine
+        container_name: imageflow-nginx
+        ports:
+          - "80:80"
+          - "443:443"
+        volumes:
+          - ./nginx.conf:/etc/nginx/nginx.conf
+          - ./ssl:/etc/nginx/ssl
+          - nginx-cache:/var/cache/nginx
+        depends_on:
+          - imageflow
+        restart: unless-stopped
+
+    volumes:
+      imageflow-logs:
+      redis-data:
+      nginx-cache:
+
+    networks:
+      default:
+        name: imageflow-prod-network
+    ```
+
+    **Start production setup:**
+    ```bash
+    docker-compose -f docker-compose.prod.yml up -d
+    ```
+  </Tab>
+
+  <Tab title="Development Setup">
+    **File: `docker-compose.dev.yml`**
+    ```yaml
+    version: '3.8'
+
+    services:
+      imageflow:
+        build:
+          context: .
+          dockerfile: Dockerfile
+          target: development
+        container_name: imageflow-dev
+        ports:
+          - "8080:8080"
+          - "9090:9090"  # Debug port
+        environment:
+          - API_KEY=dev-api-key-12345
+          - STORAGE_TYPE=local
+          - LOCAL_STORAGE_PATH=/app/static/images
+          - REDIS_ENABLED=true
+          - REDIS_HOST=redis
+          - DEBUG=true
+          - LOG_LEVEL=debug
+        volumes:
+          - .:/app
+          - imageflow-images:/app/static/images
+        depends_on:
+          - redis
+        restart: unless-stopped
+
+      redis:
+        image: redis:7-alpine
+        container_name: imageflow-redis-dev
+        ports:
+          - "6379:6379"
+        volumes:
+          - redis-dev-data:/data
+        command: redis-server --appendonly yes
+
+    volumes:
+      imageflow-images:
+      redis-dev-data:
+    ```
+
+    **Start development setup:**
+    ```bash
+    docker-compose -f docker-compose.dev.yml up
+    ```
+  </Tab>
+</Tabs>
+
+## Manual Docker Commands
+
+### Build ImageFlow Image
+
+```bash
+# Build from source
+docker build -t imageflow:latest .
+
+# Build specific version
+docker build -t imageflow:v1.0.0 .
+
+# Build for production
+docker build --target production -t imageflow:prod .
+
+# Build for development
+docker build --target development -t imageflow:dev .
+```
+
+### Run ImageFlow Container
+
+```bash
+# Basic run
+docker run -d \
+  --name imageflow \
+  -p 8080:8080 \
+  -e API_KEY=your-api-key \
+  -e STORAGE_TYPE=local \
+  -v imageflow-data:/app/static/images \
+  imageflow:latest
+
+# Run with Redis
+docker network create imageflow-network
+
+docker run -d \
+  --name redis \
+  --network imageflow-network \
+  -v redis-data:/data \
+  redis:7-alpine
+
+docker run -d \
+  --name imageflow \
+  --network imageflow-network \
+  -p 8080:8080 \
+  -e API_KEY=your-api-key \
+  -e REDIS_ENABLED=true \
+  -e REDIS_HOST=redis \
+  -v imageflow-data:/app/static/images \
+  imageflow:latest
+```
+
+## Volume Management
+
+### Persistent Data
+
+ImageFlow requires persistent storage for images and logs:
+
+```bash
+# Create named volumes
+docker volume create imageflow-images
+docker volume create imageflow-logs
+docker volume create redis-data
+
+# List volumes
+docker volume ls
+
+# Inspect volume
+docker volume inspect imageflow-images
+
+# Backup volume
+docker run --rm -v imageflow-images:/data -v $(pwd):/backup \
+  alpine tar czf /backup/imageflow-backup.tar.gz -C /data .
+
+# Restore volume
+docker run --rm -v imageflow-images:/data -v $(pwd):/backup \
+  alpine tar xzf /backup/imageflow-backup.tar.gz -C /data
+```
+
+### Bind Mounts vs Named Volumes
+
+<Tabs>
+  <Tab title="Named Volumes (Recommended)">
+    ```yaml
+    services:
+      imageflow:
+        volumes:
+          - imageflow-images:/app/static/images
+          - imageflow-logs:/app/logs
+    
+    volumes:
+      imageflow-images:
+      imageflow-logs:
+    ```
+    
+    **Benefits:**
+    - Docker manages storage location
+    - Better performance on Docker Desktop
+    - Easier backup and migration
+    - Works across different host systems
+  </Tab>
+
+  <Tab title="Bind Mounts">
+    ```yaml
+    services:
+      imageflow:
+        volumes:
+          - /opt/imageflow/images:/app/static/images
+          - /opt/imageflow/logs:/app/logs
+    ```
+    
+    **Benefits:**
+    - Direct access to files from host
+    - Easy file system integration
+    - Simple backup with standard tools
+    - Better for development
+  </Tab>
+</Tabs>
+
+## Health Checks and Monitoring
+
+### Health Check Configuration
+
+```yaml
+services:
+  imageflow:
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/config"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+```
+
+### Monitoring Commands
+
+```bash
+# Check container health
+docker-compose ps
+
+# View container stats
+docker stats
+
+# Monitor logs
+docker-compose logs -f imageflow
+
+# Check specific service logs
+docker-compose logs -f redis
+
+# Monitor resource usage
+docker system df
+docker system prune  # Clean up unused resources
+```
+
+### Log Management
+
+```yaml
+services:
+  imageflow:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+        compress: "true"
+```
+
+## Networking
+
+### Custom Networks
+
+```yaml
+networks:
+  imageflow-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+```
+
+### Service Communication
+
+```yaml
+services:
+  imageflow:
+    networks:
+      - imageflow-network
+    environment:
+      - REDIS_HOST=redis  # Use service name for internal communication
+
+  redis:
+    networks:
+      - imageflow-network
+```
+
+## SSL/TLS Configuration
+
+### With Nginx Reverse Proxy
+
+```nginx
+# nginx.conf
+server {
+    listen 443 ssl;
+    server_name your-domain.com;
+
+    ssl_certificate /etc/nginx/ssl/cert.pem;
+    ssl_certificate_key /etc/nginx/ssl/key.pem;
+
+    location / {
+        proxy_pass http://imageflow:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # File upload size limit
+        client_max_body_size 100M;
+    }
+}
+```
+
+### Docker Compose with SSL
+
+```yaml
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl-certs:/etc/nginx/ssl
+    depends_on:
+      - imageflow
+```
+
+## Scaling and Load Balancing
+
+### Horizontal Scaling
+
+```yaml
+# docker-compose.scale.yml
+version: '3.8'
+
+services:
+  imageflow:
+    image: imageflow:latest
+    environment:
+      - API_KEY=${API_KEY}
+      - STORAGE_TYPE=s3  # Required for scaling
+      - S3_BUCKET=${S3_BUCKET}
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+    deploy:
+      replicas: 3
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx-lb.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - imageflow
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+```
+
+**Start scaled deployment:**
+```bash
+docker-compose -f docker-compose.scale.yml up -d --scale imageflow=3
+```
+
+### Load Balancer Configuration
+
+```nginx
+# nginx-lb.conf
+upstream imageflow_backend {
+    server imageflow_1:8080;
+    server imageflow_2:8080;
+    server imageflow_3:8080;
+}
+
+server {
+    listen 80;
+    
+    location / {
+        proxy_pass http://imageflow_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Container Won't Start">
+    ```bash
+    # Check logs
+    docker-compose logs imageflow
+    
+    # Check configuration
+    docker-compose config
+    
+    # Verify environment variables
+    docker-compose exec imageflow env | grep -E "(API_KEY|STORAGE|REDIS)"
+    
+    # Check port conflicts
+    netstat -tulpn | grep :8080
+    ```
+  </Accordion>
+
+  <Accordion title="Permission Issues">
+    ```bash
+    # Check file permissions
+    docker-compose exec imageflow ls -la /app/static/images
+    
+    # Fix volume permissions
+    docker-compose exec imageflow chown -R app:app /app/static/images
+    
+    # For bind mounts
+    sudo chown -R $USER:$USER /opt/imageflow/images
+    ```
+  </Accordion>
+
+  <Accordion title="Redis Connection Failed">
+    ```bash
+    # Check Redis status
+    docker-compose exec redis redis-cli ping
+    
+    # Check network connectivity
+    docker-compose exec imageflow ping redis
+    
+    # Verify Redis configuration
+    docker-compose exec redis redis-cli info server
+    ```
+  </Accordion>
+
+  <Accordion title="High Memory Usage">
+    ```bash
+    # Check memory usage
+    docker stats --no-stream
+    
+    # Limit container memory
+    # Add to docker-compose.yml:
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 1G
+    
+    # Clear Docker cache
+    docker system prune -a
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Debug Mode
+
+```bash
+# Run with debug output
+DEBUG=true docker-compose up
+
+# Enable verbose logging
+LOG_LEVEL=debug docker-compose up
+
+# Interactive debugging
+docker-compose exec imageflow /bin/sh
+```
+
+## Maintenance
+
+### Regular Maintenance Tasks
+
+```bash
+# Update images
+docker-compose pull
+docker-compose up -d
+
+# Backup data
+docker-compose exec imageflow tar czf /tmp/backup.tar.gz /app/static/images
+docker cp $(docker-compose ps -q imageflow):/tmp/backup.tar.gz ./backup-$(date +%Y%m%d).tar.gz
+
+# Clean up old images
+docker image prune -a
+
+# Monitor disk usage
+docker system df
+```
+
+### Automated Backup Script
+
+```bash
+#!/bin/bash
+# backup.sh
+
+BACKUP_DIR="/opt/backups/imageflow"
+DATE=$(date +%Y%m%d_%H%M%S)
+
+mkdir -p "$BACKUP_DIR"
+
+# Backup volumes
+docker run --rm \
+  -v imageflow-images:/source:ro \
+  -v "$BACKUP_DIR":/backup \
+  alpine tar czf "/backup/images-$DATE.tar.gz" -C /source .
+
+docker run --rm \
+  -v redis-data:/source:ro \
+  -v "$BACKUP_DIR":/backup \
+  alpine tar czf "/backup/redis-$DATE.tar.gz" -C /source .
+
+# Clean old backups (keep 7 days)
+find "$BACKUP_DIR" -name "*.tar.gz" -mtime +7 -delete
+
+echo "Backup completed: $BACKUP_DIR"
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Local Deployment" icon="computer" href="/deployment/local">
+    Deploy ImageFlow locally for development
+  </Card>
+  
+  <Card title="Production Deployment" icon="server" href="/deployment/production">
+    Production deployment best practices
+  </Card>
+  
+  <Card title="Configuration" icon="gear" href="/configuration/environment">
+    Configure ImageFlow settings
+  </Card>
+  
+  <Card title="Monitoring" icon="chart-line" href="/deployment/monitoring">
+    Set up monitoring and alerting
+  </Card>
+</CardGroup>

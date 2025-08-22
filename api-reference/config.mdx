@@ -1,0 +1,53 @@
+---
+title: "Configuration API"
+description: "Get system configuration and settings"
+---
+
+## Get Configuration
+
+<api-endpoint method="GET" endpoint="/api/config">
+
+Retrieve current system configuration and settings.
+
+### Authentication Required
+<param-field header="X-API-Key" type="string" required>
+  Your ImageFlow API key
+</param-field>
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "upload_limits": {
+      "max_file_size": 10485760,
+      "max_files_per_request": 20,
+      "max_total_size": 104857600
+    },
+    "supported_formats": ["jpeg", "png", "webp", "avif", "gif", "tiff"],
+    "image_quality": 80,
+    "worker_threads": 4
+  }
+}
+```
+
+### Examples
+
+```bash
+curl -H "X-API-Key: your-key" https://your-domain.com/api/config
+```
+
+</api-endpoint>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Upload Images" icon="upload" href="/api-reference/upload">
+    Upload images with current limits
+  </Card>
+  
+  <Card title="Authentication" icon="key" href="/api-reference/authentication">
+    Learn about API authentication
+  </Card>
+</CardGroup>

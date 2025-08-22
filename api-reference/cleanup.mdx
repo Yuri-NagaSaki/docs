@@ -1,0 +1,51 @@
+---
+title: "Cleanup API"
+description: "Clean up expired and orphaned images"
+---
+
+## Trigger Cleanup
+
+<api-endpoint method="POST" endpoint="/api/trigger-cleanup">
+
+Manually trigger cleanup of expired images and orphaned files.
+
+### Authentication Required
+<param-field header="X-API-Key" type="string" required>
+  Your ImageFlow API key
+</param-field>
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "cleanup_started": true,
+    "job_id": "cleanup_abc123",
+    "estimated_duration": "5-10 minutes"
+  },
+  "message": "Cleanup process started successfully"
+}
+```
+
+### Examples
+
+```bash
+curl -X POST \
+  -H "X-API-Key: your-key" \
+  https://your-domain.com/api/trigger-cleanup
+```
+
+</api-endpoint>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="gear" href="/api-reference/config">
+    Check system configuration
+  </Card>
+  
+  <Card title="List Images" icon="images" href="/api-reference/images">
+    View your image collection
+  </Card>
+</CardGroup>

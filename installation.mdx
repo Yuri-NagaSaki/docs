@@ -1,0 +1,502 @@
+---
+title: "Installation"
+description: "Complete installation guide for ImageFlow across different platforms and environments"
+---
+
+## System Requirements
+
+Before installing ImageFlow, ensure your system meets these requirements:
+
+### Minimum Requirements
+- **CPU**: 2 cores, 2.0 GHz
+- **RAM**: 2GB (4GB recommended)
+- **Storage**: 10GB free space
+- **OS**: Linux, macOS, or Windows
+
+### Recommended Requirements
+- **CPU**: 4+ cores, 3.0 GHz
+- **RAM**: 8GB+
+- **Storage**: 50GB+ SSD
+- **Network**: 100Mbps+ for production use
+
+## Installation Methods
+
+<Tabs>
+  <Tab title="Docker Installation">
+    The recommended way to install ImageFlow for production use.
+
+    ### 1. Install Docker
+    <CodeGroup>
+      ```bash Ubuntu/Debian
+      # Update package index
+      sudo apt update
+
+      # Install Docker
+      sudo apt install docker.io docker-compose
+
+      # Start Docker service
+      sudo systemctl start docker
+      sudo systemctl enable docker
+
+      # Add user to docker group
+      sudo usermod -aG docker $USER
+      newgrp docker
+      ```
+
+      ```bash CentOS/RHEL
+      # Install Docker
+      sudo yum install -y docker docker-compose
+
+      # Start Docker service
+      sudo systemctl start docker
+      sudo systemctl enable docker
+
+      # Add user to docker group
+      sudo usermod -aG docker $USER
+      newgrp docker
+      ```
+
+      ```bash macOS
+      # Install Docker Desktop
+      brew install --cask docker
+
+      # Or download from https://www.docker.com/products/docker-desktop
+      ```
+
+      ```bash Windows
+      # Download Docker Desktop from:
+      # https://www.docker.com/products/docker-desktop
+
+      # Or use Chocolatey:
+      choco install docker-desktop
+      ```
+    </CodeGroup>
+
+    ### 2. Download ImageFlow
+    ```bash
+    # Clone the repository
+    git clone https://github.com/username/ImageFlow.git
+    cd ImageFlow
+
+    # Or download the latest release
+    wget https://github.com/username/ImageFlow/archive/refs/tags/latest.tar.gz
+    tar -xzf latest.tar.gz
+    cd ImageFlow-*
+    ```
+
+    ### 3. Configure Environment
+    ```bash
+    # Copy example configuration
+    cp .env.example .env
+
+    # Edit configuration
+    nano .env
+    ```
+
+    ### 4. Start Services
+    ```bash
+    # Full stack with Redis
+    docker-compose up -d
+
+    # Backend only
+    docker-compose -f docker-compose-backend.yaml up -d
+
+    # Custom configuration
+    docker-compose -f docker-compose-separate.yaml up -d
+    ```
+
+    <Tip>Use `docker-compose logs -f` to monitor startup logs</Tip>
+  </Tab>
+
+  <Tab title="Binary Installation">
+    Install pre-compiled binaries for quick deployment.
+
+    ### 1. Download Binary
+    <CodeGroup>
+      ```bash Linux (x64)
+      wget https://github.com/username/ImageFlow/releases/latest/download/imageflow-linux-amd64.tar.gz
+      tar -xzf imageflow-linux-amd64.tar.gz
+      sudo mv imageflow /usr/local/bin/
+      ```
+
+      ```bash Linux (ARM64)
+      wget https://github.com/username/ImageFlow/releases/latest/download/imageflow-linux-arm64.tar.gz
+      tar -xzf imageflow-linux-arm64.tar.gz
+      sudo mv imageflow /usr/local/bin/
+      ```
+
+      ```bash macOS (Intel)
+      wget https://github.com/username/ImageFlow/releases/latest/download/imageflow-darwin-amd64.tar.gz
+      tar -xzf imageflow-darwin-amd64.tar.gz
+      sudo mv imageflow /usr/local/bin/
+      ```
+
+      ```bash macOS (Apple Silicon)
+      wget https://github.com/username/ImageFlow/releases/latest/download/imageflow-darwin-arm64.tar.gz
+      tar -xzf imageflow-darwin-arm64.tar.gz
+      sudo mv imageflow /usr/local/bin/
+      ```
+
+      ```bash Windows
+      # Download from GitHub releases page
+      # https://github.com/username/ImageFlow/releases/latest/download/imageflow-windows-amd64.zip
+      
+      # Extract and add to PATH
+      ```
+    </CodeGroup>
+
+    ### 2. Install libvips
+    ImageFlow requires libvips for image processing:
+
+    <CodeGroup>
+      ```bash Ubuntu/Debian
+      sudo apt update
+      sudo apt install libvips-dev
+      ```
+
+      ```bash CentOS/RHEL/Fedora
+      # CentOS/RHEL
+      sudo yum install vips-devel
+
+      # Fedora
+      sudo dnf install vips-devel
+      ```
+
+      ```bash macOS
+      # Using Homebrew
+      brew install vips
+
+      # Using MacPorts
+      sudo port install vips
+      ```
+
+      ```bash Windows
+      # Download pre-compiled libvips from:
+      # https://libvips.github.io/libvips/install.html
+      # Extract to C:\vips and add to PATH
+      ```
+    </CodeGroup>
+
+    ### 3. Create Configuration
+    ```bash
+    # Create working directory
+    mkdir -p /opt/imageflow
+    cd /opt/imageflow
+
+    # Create configuration file
+    cat > .env << EOF
+    API_KEY=your-secure-api-key-here
+    STORAGE_TYPE=local
+    LOCAL_STORAGE_PATH=./static/images
+    REDIS_ENABLED=false
+    PORT=8080
+    EOF
+
+    # Create storage directory
+    mkdir -p static/images
+    ```
+
+    ### 4. Run ImageFlow
+    ```bash
+    # Start ImageFlow
+    imageflow
+
+    # Or run in background
+    nohup imageflow > imageflow.log 2>&1 &
+    ```
+  </Tab>
+
+  <Tab title="Source Installation">
+    Build ImageFlow from source for development or customization.
+
+    ### 1. Install Dependencies
+    <CodeGroup>
+      ```bash Ubuntu/Debian
+      # Update package index
+      sudo apt update
+
+      # Install Go
+      wget https://go.dev/dl/go1.23.0.linux-amd64.tar.gz
+      sudo tar -C /usr/local -xzf go1.23.0.linux-amd64.tar.gz
+      echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+      source ~/.bashrc
+
+      # Install Node.js
+      curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+      sudo apt-get install -y nodejs
+
+      # Install libvips
+      sudo apt install libvips-dev
+      ```
+
+      ```bash macOS
+      # Install Homebrew if not already installed
+      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+      # Install dependencies
+      brew install go node vips
+      ```
+
+      ```bash Windows
+      # Install Go from https://golang.org/dl/
+      # Install Node.js from https://nodejs.org/
+      # Install libvips from https://libvips.github.io/libvips/install.html
+      ```
+    </CodeGroup>
+
+    ### 2. Clone and Build
+    ```bash
+    # Clone repository
+    git clone https://github.com/username/ImageFlow.git
+    cd ImageFlow
+
+    # Install Go dependencies
+    go mod tidy
+
+    # Build frontend
+    cd frontend
+    npm install
+    npm run build
+    cd ..
+
+    # Build backend
+    go build -o imageflow main.go
+    ```
+
+    ### 3. Configure and Run
+    ```bash
+    # Copy configuration
+    cp .env.example .env
+    nano .env
+
+    # Run ImageFlow
+    ./imageflow
+    ```
+  </Tab>
+</Tabs>
+
+## Database Setup
+
+<Tabs>
+  <Tab title="Redis (Recommended)">
+    Redis provides fast metadata storage and improved performance.
+
+    ### Install Redis
+    <CodeGroup>
+      ```bash Ubuntu/Debian
+      sudo apt update
+      sudo apt install redis-server
+
+      # Start Redis
+      sudo systemctl start redis-server
+      sudo systemctl enable redis-server
+      ```
+
+      ```bash CentOS/RHEL
+      sudo yum install redis
+
+      # Start Redis
+      sudo systemctl start redis
+      sudo systemctl enable redis
+      ```
+
+      ```bash macOS
+      brew install redis
+
+      # Start Redis
+      brew services start redis
+      ```
+
+      ```bash Docker
+      docker run -d --name redis -p 6379:6379 redis:7-alpine
+      ```
+    </CodeGroup>
+
+    ### Configure ImageFlow
+    ```env
+    REDIS_ENABLED=true
+    REDIS_HOST=localhost
+    REDIS_PORT=6379
+    REDIS_PASSWORD=
+    METADATA_STORE_TYPE=redis
+    ```
+  </Tab>
+
+  <Tab title="File-based Storage">
+    Use file-based metadata storage for simple deployments.
+
+    ### Configuration
+    ```env
+    REDIS_ENABLED=false
+    METADATA_STORE_TYPE=file
+    ```
+
+    No additional setup required - metadata will be stored as JSON files alongside images.
+
+    <Warning>File-based storage is not recommended for high-traffic production environments.</Warning>
+  </Tab>
+</Tabs>
+
+## Storage Configuration
+
+<Tabs>
+  <Tab title="Local Storage">
+    Store images on the local filesystem.
+
+    ### Configuration
+    ```env
+    STORAGE_TYPE=local
+    LOCAL_STORAGE_PATH=./static/images
+    ```
+
+    ### Setup
+    ```bash
+    # Create storage directory
+    mkdir -p static/images
+    chmod 755 static/images
+
+    # Ensure proper permissions
+    chown -R $(whoami):$(whoami) static/images
+    ```
+
+    <Tip>Use absolute paths for production deployments</Tip>
+  </Tab>
+
+  <Tab title="S3 Storage">
+    Use Amazon S3 or S3-compatible storage services.
+
+    ### Configuration
+    ```env
+    STORAGE_TYPE=s3
+    S3_ENDPOINT=s3.amazonaws.com
+    S3_REGION=us-east-1
+    S3_BUCKET=your-imageflow-bucket
+    S3_ACCESS_KEY=your-access-key
+    S3_SECRET_KEY=your-secret-key
+    CUSTOM_DOMAIN=cdn.yourdomain.com
+    ```
+
+    ### Setup S3 Bucket
+    ```bash
+    # Create bucket (using AWS CLI)
+    aws s3 mb s3://your-imageflow-bucket
+
+    # Set bucket policy for public read access
+    aws s3api put-bucket-policy --bucket your-imageflow-bucket --policy '{
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "PublicReadGetObject",
+          "Effect": "Allow",
+          "Principal": "*",
+          "Action": "s3:GetObject",
+          "Resource": "arn:aws:s3:::your-imageflow-bucket/*"
+        }
+      ]
+    }'
+    ```
+  </Tab>
+</Tabs>
+
+## Post-Installation
+
+### 1. Verify Installation
+```bash
+# Check if ImageFlow is running
+curl http://localhost:8080/api/config
+
+# Test image upload
+curl -H "X-API-Key: your-api-key" \
+     -F "images=@test-image.jpg" \
+     http://localhost:8080/api/upload
+```
+
+### 2. Create Service (Linux)
+```bash
+# Create systemd service file
+sudo tee /etc/systemd/system/imageflow.service > /dev/null <<EOF
+[Unit]
+Description=ImageFlow Image Service
+After=network.target
+
+[Service]
+Type=simple
+User=imageflow
+WorkingDirectory=/opt/imageflow
+ExecStart=/usr/local/bin/imageflow
+Restart=on-failure
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Enable and start service
+sudo systemctl daemon-reload
+sudo systemctl enable imageflow
+sudo systemctl start imageflow
+```
+
+### 3. Configure Reverse Proxy
+<CodeGroup>
+  ```nginx Nginx
+  server {
+      listen 80;
+      server_name your-domain.com;
+
+      location / {
+          proxy_pass http://localhost:8080;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+          
+          # File upload size limit
+          client_max_body_size 100M;
+      }
+  }
+  ```
+
+  ```apache Apache
+  <VirtualHost *:80>
+      ServerName your-domain.com
+      
+      ProxyPreserveHost On
+      ProxyPass / http://localhost:8080/
+      ProxyPassReverse / http://localhost:8080/
+      
+      # File upload size limit
+      LimitRequestBody 104857600
+  </VirtualHost>
+  ```
+</CodeGroup>
+
+### 4. Configure Firewall
+```bash
+# Allow HTTP and HTTPS traffic
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+
+# Allow ImageFlow port (if accessing directly)
+sudo ufw allow 8080/tcp
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="gear" href="/configuration/environment">
+    Configure ImageFlow for your specific needs
+  </Card>
+  
+  <Card title="Security" icon="shield" href="/deployment/production">
+    Secure your ImageFlow installation
+  </Card>
+  
+  <Card title="Monitoring" icon="chart-line" href="/deployment/monitoring">
+    Set up monitoring and logging
+  </Card>
+  
+  <Card title="Backup" icon="floppy-disk" href="/deployment/backup">
+    Configure backup and disaster recovery
+  </Card>
+</CardGroup>

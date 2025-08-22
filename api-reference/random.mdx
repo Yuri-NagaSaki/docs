@@ -1,0 +1,657 @@
+---
+title: "Random Images"
+description: "Get random images with advanced filtering and device-aware serving"
+---
+
+## Random Image API
+
+The random image endpoint provides access to randomly selected images from your ImageFlow collection with powerful filtering options and automatic device optimization.
+
+<Info>
+  This endpoint is **public** and does not require authentication, making it perfect for showcasing your image collection or powering random image features.
+</Info>
+
+## Get Random Image
+
+<api-endpoint method="GET" endpoint="/api/random">
+
+Returns a randomly selected image with automatic format optimization based on the requesting device and browser capabilities.
+
+### Query Parameters
+
+<param-field query="tag" type="string" optional>
+  Filter by a single tag
+</param-field>
+
+<param-field query="tags" type="string" optional>
+  Filter by multiple tags (comma-separated, AND logic)
+</param-field>
+
+<param-field query="exclude" type="string" optional>
+  Exclude images with specified tags (comma-separated)
+</param-field>
+
+<param-field query="orientation" type="string" optional>
+  Force specific orientation: `portrait`, `landscape`, or `any`
+</param-field>
+
+<param-field query="format" type="string" optional>
+  Prefer specific format: `avif`, `webp`, `original`, or `auto`
+</param-field>
+
+<param-field query="quality" type="integer" optional>
+  Image quality override (1-100)
+</param-field>
+
+<param-field query="width" type="integer" optional>
+  Maximum width in pixels
+</param-field>
+
+<param-field query="height" type="integer" optional>
+  Maximum height in pixels
+</param-field>
+
+### Response
+
+The API returns the actual image file with appropriate content-type headers, or a JSON response if an error occurs.
+
+<response-example>
+```http Success Response
+HTTP/1.1 200 OK
+Content-Type: image/webp
+Content-Length: 256789
+Cache-Control: public, max-age=3600
+ETag: "abc123def456"
+X-Image-Format: webp
+X-Image-Orientation: landscape
+X-Image-Tags: nature,landscape,mountains
+
+[Binary image data]
+```
+
+```json No Images Found
+{
+  "success": false,
+  "error": {
+    "code": "NO_IMAGES_FOUND",
+    "message": "No images found matching the specified criteria"
+  }
+}
+```
+
+```json Invalid Parameters
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_PARAMETERS",
+    "message": "Invalid orientation parameter. Must be 'portrait', 'landscape', or 'any'"
+  }
+}
+```
+</response-example>
+
+### Basic Examples
+
+<CodeGroup>
+```bash Simple Random Image
+curl https://your-domain.com/api/random
+```
+
+```bash With Tag Filter
+curl "https://your-domain.com/api/random?tag=nature"
+```
+
+```bash Multiple Tags (AND logic)
+curl "https://your-domain.com/api/random?tags=nature,landscape,mountains"
+```
+
+```bash Exclude NSFW Content
+curl "https://your-domain.com/api/random?exclude=nsfw,private"
+```
+
+```bash Force Portrait Orientation
+curl "https://your-domain.com/api/random?orientation=portrait"
+```
+
+```bash Prefer AVIF Format
+curl "https://your-domain.com/api/random?format=avif"
+```
+</CodeGroup>
+
+### Advanced Examples
+
+<CodeGroup>
+```bash Complex Filtering
+curl "https://your-domain.com/api/random?tags=nature,sunset&exclude=nsfw&orientation=landscape&format=webp&quality=85"
+```
+
+```bash Download to File
+curl "https://your-domain.com/api/random?tag=wallpaper" -o random-wallpaper.jpg
+```
+
+```bash Get Image Info Headers
+curl -I "https://your-domain.com/api/random?tag=nature"
+```
+
+```javascript Fetch API
+const response = await fetch('/api/random?tags=nature,landscape');
+if (response.ok) {
+  const blob = await response.blob();
+  const imageUrl = URL.createObjectURL(blob);
+  document.getElementById('random-image').src = imageUrl;
+}
+```
+
+```python Python Requests
+import requests
+
+response = requests.get(
+    'https://your-domain.com/api/random',
+    params={
+        'tags': 'nature,landscape',
+        'orientation': 'landscape',
+        'format': 'webp'
+    }
+)
+
+if response.status_code == 200:
+    with open('random_image.webp', 'wb') as f:
+        f.write(response.content)
+```
+</CodeGroup>
+
+</api-endpoint>
+
+## Device-Aware Serving
+
+ImageFlow automatically optimizes image delivery based on the requesting device:
+
+### Automatic Detection
+
+<AccordionGroup>
+  <Accordion title="Mobile Devices">
+    - **Default Orientation**: Portrait (unless overridden)
+    - **Format Priority**: AVIF → WebP → JPEG
+    - **Quality**: Optimized for smaller screens
+    - **Compression**: Higher compression for bandwidth efficiency
+  </Accordion>
+
+  <Accordion title="Desktop Devices">
+    - **Default Orientation**: Landscape (unless overridden)
+    - **Format Priority**: AVIF → WebP → JPEG
+    - **Quality**: Higher quality for larger screens
+    - **Compression**: Balanced compression for quality
+  </Accordion>
+
+  <Accordion title="Tablet Devices">
+    - **Default Orientation**: Determined by screen aspect ratio
+    - **Format Priority**: AVIF → WebP → JPEG
+    - **Quality**: Adaptive based on screen size
+    - **Compression**: Optimized for touch interface
+  </Accordion>
+</AccordionGroup>
+
+### Browser Support Detection
+
+ImageFlow automatically serves the best supported format:
+
+| Browser | AVIF Support | WebP Support | Fallback |
+|---------|--------------|--------------|----------|
+| Chrome 85+ | ✅ | ✅ | JPEG |
+| Firefox 93+ | ✅ | ✅ | JPEG |
+| Safari 16+ | ✅ | ✅ | JPEG |
+| Edge 90+ | ✅ | ✅ | JPEG |
+| Older Browsers | ❌ | ✅/❌ | JPEG |
+
+### Custom User-Agent Handling
+
+```bash
+# Mobile User-Agent (gets portrait by default)
+curl -H "User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X)" \
+  "https://your-domain.com/api/random"
+
+# Desktop User-Agent (gets landscape by default)
+curl -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
+  "https://your-domain.com/api/random"
+
+# Custom Accept header for format preference
+curl -H "Accept: image/avif,image/webp,image/*" \
+  "https://your-domain.com/api/random"
+```
+
+## Advanced Filtering
+
+### Tag-Based Filtering
+
+<AccordionGroup>
+  <Accordion title="Single Tag Filter">
+    ```bash
+    # Images tagged with 'nature'
+    curl "https://your-domain.com/api/random?tag=nature"
+    ```
+  </Accordion>
+
+  <Accordion title="Multiple Tags (AND Logic)">
+    ```bash
+    # Images tagged with both 'nature' AND 'landscape' AND 'mountains'
+    curl "https://your-domain.com/api/random?tags=nature,landscape,mountains"
+    ```
+  </Accordion>
+
+  <Accordion title="Tag Exclusion">
+    ```bash
+    # Exclude images with 'nsfw' or 'private' tags
+    curl "https://your-domain.com/api/random?exclude=nsfw,private"
+    
+    # Combine inclusion and exclusion
+    curl "https://your-domain.com/api/random?tags=nature&exclude=nsfw,watermarked"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Orientation Filtering
+
+<AccordionGroup>
+  <Accordion title="Portrait Images">
+    ```bash
+    # Force portrait orientation (height > width)
+    curl "https://your-domain.com/api/random?orientation=portrait"
+    ```
+    
+    Perfect for:
+    - Mobile wallpapers
+    - Social media stories
+    - Portrait photography
+  </Accordion>
+
+  <Accordion title="Landscape Images">
+    ```bash
+    # Force landscape orientation (width > height)
+    curl "https://your-domain.com/api/random?orientation=landscape"
+    ```
+    
+    Perfect for:
+    - Desktop wallpapers
+    - Website headers
+    - Landscape photography
+  </Accordion>
+
+  <Accordion title="Any Orientation">
+    ```bash
+    # Don't filter by orientation
+    curl "https://your-domain.com/api/random?orientation=any"
+    ```
+    
+    Returns images regardless of orientation.
+  </Accordion>
+</AccordionGroup>
+
+### Format Control
+
+<AccordionGroup>
+  <Accordion title="Format Priority">
+    ```bash
+    # Prefer AVIF (best compression)
+    curl "https://your-domain.com/api/random?format=avif"
+    
+    # Prefer WebP (good compression, wide support)
+    curl "https://your-domain.com/api/random?format=webp"
+    
+    # Force original format
+    curl "https://your-domain.com/api/random?format=original"
+    
+    # Automatic format selection (default)
+    curl "https://your-domain.com/api/random?format=auto"
+    ```
+  </Accordion>
+
+  <Accordion title="Quality Control">
+    ```bash
+    # High quality (larger files)
+    curl "https://your-domain.com/api/random?quality=95"
+    
+    # Balanced quality
+    curl "https://your-domain.com/api/random?quality=80"
+    
+    # Lower quality (smaller files)
+    curl "https://your-domain.com/api/random?quality=65"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Response Headers
+
+ImageFlow includes helpful headers in the response:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: image/webp
+Content-Length: 256789
+Cache-Control: public, max-age=3600
+ETag: "abc123def456"
+Last-Modified: Wed, 21 Oct 2023 07:28:00 GMT
+
+# ImageFlow-specific headers
+X-Image-Format: webp
+X-Image-Orientation: landscape
+X-Image-Tags: nature,landscape,mountains
+X-Image-Dimensions: 1920x1080
+X-Image-Size: 256789
+X-Image-Quality: 80
+X-Device-Type: desktop
+X-Original-Format: jpeg
+```
+
+### Header Descriptions
+
+| Header | Description |
+|--------|-------------|
+| `X-Image-Format` | Actual format being served |
+| `X-Image-Orientation` | Image orientation (portrait/landscape) |
+| `X-Image-Tags` | Comma-separated list of image tags |
+| `X-Image-Dimensions` | Image dimensions (width x height) |
+| `X-Image-Size` | File size in bytes |
+| `X-Image-Quality` | Image quality setting used |
+| `X-Device-Type` | Detected device type |
+| `X-Original-Format` | Original uploaded format |
+
+## Integration Examples
+
+### HTML Image Element
+
+```html
+<!-- Simple random image -->
+<img src="/api/random" alt="Random image" />
+
+<!-- Random nature image -->
+<img src="/api/random?tag=nature" alt="Random nature image" />
+
+<!-- Responsive random image -->
+<img src="/api/random?tags=wallpaper&orientation=landscape" 
+     alt="Random wallpaper"
+     style="max-width: 100%; height: auto;" />
+```
+
+### CSS Background Image
+
+```css
+/* Random background image */
+.hero-section {
+  background-image: url('/api/random?tags=background,abstract');
+  background-size: cover;
+  background-position: center;
+}
+
+/* Mobile-optimized background */
+@media (max-width: 768px) {
+  .hero-section {
+    background-image: url('/api/random?tags=background&orientation=portrait');
+  }
+}
+```
+
+### JavaScript Dynamic Loading
+
+```javascript
+class RandomImageLoader {
+  constructor(baseUrl) {
+    this.baseUrl = baseUrl;
+  }
+
+  async loadRandomImage(options = {}) {
+    const params = new URLSearchParams(options);
+    const url = `${this.baseUrl}/api/random?${params}`;
+    
+    try {
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      const imageUrl = URL.createObjectURL(blob);
+      
+      // Get metadata from headers
+      const metadata = {
+        format: response.headers.get('X-Image-Format'),
+        orientation: response.headers.get('X-Image-Orientation'),
+        tags: response.headers.get('X-Image-Tags')?.split(',') || [],
+        dimensions: response.headers.get('X-Image-Dimensions'),
+        size: parseInt(response.headers.get('X-Image-Size'))
+      };
+      
+      return { imageUrl, metadata };
+    } catch (error) {
+      console.error('Failed to load random image:', error);
+      throw error;
+    }
+  }
+}
+
+// Usage
+const loader = new RandomImageLoader('https://your-domain.com');
+
+// Load random nature image
+const { imageUrl, metadata } = await loader.loadRandomImage({
+  tags: 'nature,landscape',
+  orientation: 'landscape',
+  format: 'webp'
+});
+
+document.getElementById('random-image').src = imageUrl;
+console.log('Image metadata:', metadata);
+```
+
+### React Component
+
+```jsx
+import React, { useState, useEffect } from 'react';
+
+const RandomImage = ({ tags, orientation, className }) => {
+  const [imageUrl, setImageUrl] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const loadImage = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const params = new URLSearchParams({
+        ...(tags && { tags }),
+        ...(orientation && { orientation })
+      });
+      
+      const response = await fetch(`/api/random?${params}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to load image');
+      }
+      
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      setImageUrl(url);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadImage();
+    
+    // Cleanup object URL on unmount
+    return () => {
+      if (imageUrl) {
+        URL.revokeObjectURL(imageUrl);
+      }
+    };
+  }, [tags, orientation]);
+
+  if (loading) return <div>Loading random image...</div>;
+  if (error) return <div>Error: {error}</div>;
+
+  return (
+    <div className={className}>
+      <img src={imageUrl} alt="Random image" style={{ maxWidth: '100%' }} />
+      <button onClick={loadImage}>Load New Image</button>
+    </div>
+  );
+};
+
+// Usage
+<RandomImage 
+  tags="nature,landscape" 
+  orientation="landscape"
+  className="random-image-container"
+/>
+```
+
+## Caching and Performance
+
+### Cache Headers
+
+ImageFlow sets appropriate cache headers for optimal performance:
+
+```http
+Cache-Control: public, max-age=3600
+ETag: "abc123def456"
+Last-Modified: Wed, 21 Oct 2023 07:28:00 GMT
+```
+
+### CDN Integration
+
+Configure your CDN to cache random images:
+
+```nginx
+# Nginx configuration
+location /api/random {
+    proxy_pass http://imageflow-backend;
+    proxy_cache random_images;
+    proxy_cache_valid 200 1h;
+    proxy_cache_key "$scheme$request_method$host$request_uri$http_user_agent";
+    add_header X-Cache-Status $upstream_cache_status;
+}
+```
+
+### Client-Side Caching
+
+```javascript
+// Implement client-side caching
+class CachedRandomImageLoader {
+  constructor(baseUrl, cacheSize = 10) {
+    this.baseUrl = baseUrl;
+    this.cache = new Map();
+    this.maxCacheSize = cacheSize;
+  }
+
+  getCacheKey(options) {
+    return JSON.stringify(options);
+  }
+
+  async loadRandomImage(options = {}) {
+    const cacheKey = this.getCacheKey(options);
+    
+    // Check cache first
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey);
+    }
+
+    // Load new image
+    const result = await this.fetchRandomImage(options);
+    
+    // Store in cache
+    if (this.cache.size >= this.maxCacheSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+    
+    this.cache.set(cacheKey, result);
+    return result;
+  }
+}
+```
+
+## Error Handling
+
+### Common Errors
+
+<AccordionGroup>
+  <Accordion title="No Images Found">
+    ```json
+    {
+      "success": false,
+      "error": {
+        "code": "NO_IMAGES_FOUND",
+        "message": "No images found matching the specified criteria"
+      }
+    }
+    ```
+    
+    **Causes:**
+    - No images uploaded yet
+    - Filters are too restrictive
+    - All matching images are excluded
+    
+    **Solutions:**
+    - Check if images exist with your tags
+    - Broaden filter criteria
+    - Remove exclusion filters temporarily
+  </Accordion>
+
+  <Accordion title="Invalid Parameters">
+    ```json
+    {
+      "success": false,
+      "error": {
+        "code": "INVALID_PARAMETERS",
+        "message": "Invalid orientation parameter"
+      }
+    }
+    ```
+    
+    **Solutions:**
+    - Use valid orientation values: `portrait`, `landscape`, `any`
+    - Use valid format values: `avif`, `webp`, `original`, `auto`
+    - Check quality range: 1-100
+  </Accordion>
+
+  <Accordion title="Server Error">
+    ```json
+    {
+      "success": false,
+      "error": {
+        "code": "INTERNAL_ERROR",
+        "message": "Internal server error occurred"
+      }
+    }
+    ```
+    
+    **Solutions:**
+    - Check server logs
+    - Verify ImageFlow service is running
+    - Check storage connectivity
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Upload Images" icon="upload" href="/api-reference/upload">
+    Learn how to upload images to populate your collection
+  </Card>
+  
+  <Card title="Image Management" icon="images" href="/api-reference/images">
+    List and manage your uploaded images
+  </Card>
+  
+  <Card title="Tag Management" icon="tag" href="/api-reference/tags">
+    Organize images with tags for better filtering
+  </Card>
+  
+  <Card title="Frontend Integration" icon="window" href="/frontend/gallery">
+    Integrate random images into your web application
+  </Card>
+</CardGroup>

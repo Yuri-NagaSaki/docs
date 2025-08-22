@@ -1,0 +1,45 @@
+---
+title: "Delete Images API"
+description: "Delete images from your ImageFlow collection"
+---
+
+## Delete Images
+
+<api-endpoint method="POST" endpoint="/api/delete-image">
+
+Delete a specific image and all its associated files.
+
+### Authentication Required
+<param-field header="X-API-Key" type="string" required>
+  Your ImageFlow API key
+</param-field>
+
+### Request Body
+
+<param-field body="image_id" type="string" required>
+  ID of the image to delete
+</param-field>
+
+### Examples
+
+```bash
+curl -X POST \
+  -H "X-API-Key: your-key" \
+  -H "Content-Type: application/json" \
+  -d '{"image_id": "img_abc123"}' \
+  https://your-domain.com/api/delete-image
+```
+
+</api-endpoint>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="List Images" icon="images" href="/api-reference/images">
+    View your image collection
+  </Card>
+  
+  <Card title="Upload Images" icon="upload" href="/api-reference/upload">
+    Add new images to your collection
+  </Card>
+</CardGroup>

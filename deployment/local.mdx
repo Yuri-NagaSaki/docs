@@ -1,0 +1,755 @@
+---
+title: "Local Deployment"
+description: "Deploy ImageFlow locally for development and testing"
+---
+
+## Local Development Setup
+
+Running ImageFlow locally is perfect for development, testing, and small-scale deployments. This guide covers everything you need to get ImageFlow running on your local machine.
+
+## Prerequisites
+
+### System Requirements
+
+- **Operating System**: Linux, macOS, or Windows
+- **Go**: Version 1.23 or later
+- **Node.js**: Version 18 or later (for frontend development)
+- **Memory**: Minimum 2GB RAM, 4GB+ recommended
+- **Disk Space**: 5GB+ free space
+- **libvips**: Required for image processing
+
+### Install Dependencies
+
+<Tabs>
+  <Tab title="Ubuntu/Debian">
+    ```bash
+    # Update package index
+    sudo apt update
+
+    # Install Go
+    wget https://go.dev/dl/go1.23.0.linux-amd64.tar.gz
+    sudo tar -C /usr/local -xzf go1.23.0.linux-amd64.tar.gz
+    echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+    source ~/.bashrc
+
+    # Install Node.js
+    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+
+    # Install libvips (required for image processing)
+    sudo apt install libvips-dev
+
+    # Install Redis (optional but recommended)
+    sudo apt install redis-server
+
+    # Verify installations
+    go version
+    node --version
+    vips --version
+    ```
+  </Tab>
+
+  <Tab title="macOS">
+    ```bash
+    # Install Homebrew (if not already installed)
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+    # Install dependencies
+    brew install go node vips redis
+
+    # Start Redis service
+    brew services start redis
+
+    # Verify installations
+    go version
+    node --version
+    vips --version
+    redis-cli ping
+    ```
+  </Tab>
+
+  <Tab title="Windows">
+    **Install Go:**
+    1. Download from [https://golang.org/dl/](https://golang.org/dl/)
+    2. Run the installer and follow instructions
+    3. Add Go to your PATH
+
+    **Install Node.js:**
+    1. Download from [https://nodejs.org/](https://nodejs.org/)
+    2. Run the installer
+
+    **Install libvips:**
+    1. Download pre-built binaries from [libvips releases](https://github.com/libvips/libvips/releases)
+    2. Extract to `C:\vips`
+    3. Add `C:\vips\bin` to your PATH
+
+    **Install Redis (optional):**
+    1. Download Redis for Windows or use WSL
+    2. Or use Docker: `docker run -d -p 6379:6379 redis:7-alpine`
+
+    ```powershell
+    # Verify installations
+    go version
+    node --version
+    redis-cli ping
+    ```
+  </Tab>
+
+  <Tab title="Docker Alternative">
+    If you prefer Docker but want to develop locally:
+
+    ```bash
+    # Run only Redis in Docker
+    docker run -d --name redis -p 6379:6379 redis:7-alpine
+
+    # Run ImageFlow locally, connecting to Docker Redis
+    export REDIS_HOST=localhost
+    export REDIS_PORT=6379
+    ```
+  </Tab>
+</Tabs>
+
+## Quick Start
+
+<Steps>
+  <Step title="Clone Repository">
+    ```bash
+    # Clone ImageFlow repository
+    git clone https://github.com/username/ImageFlow.git
+    cd ImageFlow
+
+    # Or download and extract release
+    wget https://github.com/username/ImageFlow/archive/refs/tags/v1.0.0.tar.gz
+    tar -xzf v1.0.0.tar.gz
+    cd ImageFlow-1.0.0
+    ```
+  </Step>
+
+  <Step title="Configure Environment">
+    ```bash
+    # Copy example configuration
+    cp .env.example .env
+
+    # Edit configuration file
+    nano .env
+    ```
+
+    **Basic Configuration:**
+    ```env
+    # API Key
+    API_KEY=dev-api-key-12345
+
+    # Server settings
+    PORT=8080
+    HOST=localhost
+    DEBUG=true
+
+    # Storage (local for development)
+    STORAGE_TYPE=local
+    LOCAL_STORAGE_PATH=./static/images
+
+    # Redis (optional but recommended)
+    REDIS_ENABLED=true
+    REDIS_HOST=localhost
+    REDIS_PORT=6379
+
+    # Logging
+    LOG_LEVEL=debug
+    LOG_FORMAT=text
+    ```
+  </Step>
+
+  <Step title="Install Go Dependencies">
+    ```bash
+    # Download and install Go modules
+    go mod tidy
+
+    # Verify dependencies
+    go mod verify
+    ```
+  </Step>
+
+  <Step title="Build Frontend (Optional)">
+    ```bash
+    # Navigate to frontend directory
+    cd frontend
+
+    # Install Node.js dependencies
+    npm install
+
+    # Build frontend for production
+    npm run build
+
+    # Or run development server (in separate terminal)
+    npm run dev
+
+    # Return to project root
+    cd ..
+    ```
+
+    <Info>
+      The Go binary includes a pre-built frontend, so building is optional for basic testing.
+    </Info>
+  </Step>
+
+  <Step title="Start ImageFlow">
+    ```bash
+    # Create storage directory
+    mkdir -p static/images
+
+    # Start ImageFlow server
+    go run main.go
+
+    # Or build and run binary
+    go build -o imageflow main.go
+    ./imageflow
+    ```
+  </Step>
+
+  <Step title="Verify Installation">
+    ```bash
+    # Test API endpoint
+    curl http://localhost:8080/api/config
+
+    # Test web interface
+    open http://localhost:8080
+    ```
+  </Step>
+</Steps>
+
+## Development Workflow
+
+### File Structure
+
+```
+ImageFlow/
+├── main.go                 # Application entry point
+├── .env                   # Environment configuration
+├── go.mod                 # Go module definition
+├── go.sum                 # Go module checksums
+├── config/
+│   └── config.go          # Configuration management
+├── handlers/              # HTTP request handlers
+│   ├── auth.go
+│   ├── upload.go
+│   └── ...
+├── utils/                 # Utility functions
+├── frontend/              # Next.js frontend
+│   ├── package.json
+│   ├── next.config.mjs
+│   └── app/
+├── static/                # Static files and images
+└── logs/                  # Application logs
+```
+
+### Development Commands
+
+```bash
+# Start with auto-reload (using air)
+go install github.com/cosmtrek/air@latest
+air
+
+# Run tests
+go test ./...
+
+# Build for current platform
+go build -o imageflow main.go
+
+# Cross-compile for different platforms
+GOOS=linux GOARCH=amd64 go build -o imageflow-linux main.go
+GOOS=darwin GOARCH=amd64 go build -o imageflow-macos main.go
+GOOS=windows GOARCH=amd64 go build -o imageflow.exe main.go
+
+# Clean build cache
+go clean -cache
+
+# Update dependencies
+go get -u ./...
+go mod tidy
+```
+
+### Frontend Development
+
+<Tabs>
+  <Tab title="Development Server">
+    ```bash
+    cd frontend
+
+    # Install dependencies
+    npm install
+
+    # Start development server with hot reload
+    npm run dev
+
+    # Frontend will be available at http://localhost:3000
+    # API requests will proxy to http://localhost:8080
+    ```
+
+    **Development Benefits:**
+    - Hot module replacement
+    - Real-time code updates
+    - Debug tools integration
+    - Separate frontend/backend development
+  </Tab>
+
+  <Tab title="Production Build">
+    ```bash
+    cd frontend
+
+    # Build optimized production bundle
+    npm run build
+
+    # Test production build locally
+    npm run start
+
+    # Export static files (for embedding in Go binary)
+    npm run export
+    ```
+
+    **Build Output:**
+    - Optimized JavaScript and CSS
+    - Static HTML files
+    - Compressed assets
+    - Service worker (if configured)
+  </Tab>
+</Tabs>
+
+## Local Configuration Options
+
+### Development Environment
+
+```env
+# .env for development
+API_KEY=dev-api-key-12345
+PORT=8080
+HOST=localhost
+DEBUG=true
+
+# Storage
+STORAGE_TYPE=local
+LOCAL_STORAGE_PATH=./static/images
+
+# Image processing
+MAX_UPLOAD_COUNT=10
+IMAGE_QUALITY=80
+WORKER_THREADS=2
+
+# Redis (optional)
+REDIS_ENABLED=true
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# Logging
+LOG_LEVEL=debug
+LOG_FORMAT=text
+LOG_FILE=./logs/imageflow.log
+
+# CORS (allow all for development)
+CORS_ORIGINS=*
+```
+
+### Testing Environment
+
+```env
+# .env.test
+API_KEY=test-api-key-67890
+PORT=8081
+HOST=localhost
+DEBUG=true
+
+# Use separate storage for tests
+STORAGE_TYPE=local
+LOCAL_STORAGE_PATH=./test-images
+
+# Faster processing for tests
+WORKER_THREADS=1
+IMAGE_QUALITY=70
+
+# Separate Redis DB for tests
+REDIS_ENABLED=true
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_DB=1
+
+# Separate log file
+LOG_FILE=./logs/test.log
+```
+
+## Database Setup
+
+### Redis (Recommended)
+
+<Tabs>
+  <Tab title="System Installation">
+    ```bash
+    # Ubuntu/Debian
+    sudo apt install redis-server
+    sudo systemctl start redis-server
+    sudo systemctl enable redis-server
+
+    # macOS
+    brew install redis
+    brew services start redis
+
+    # Test connection
+    redis-cli ping
+    # Expected: PONG
+    ```
+  </Tab>
+
+  <Tab title="Docker Redis">
+    ```bash
+    # Run Redis in Docker
+    docker run -d \
+      --name redis \
+      -p 6379:6379 \
+      -v redis-data:/data \
+      redis:7-alpine
+
+    # Test connection
+    docker exec redis redis-cli ping
+    ```
+  </Tab>
+
+  <Tab title="Configuration">
+    **Redis Configuration (`redis.conf`):**
+    ```conf
+    # Basic settings
+    port 6379
+    bind 127.0.0.1
+    
+    # Memory management
+    maxmemory 256mb
+    maxmemory-policy allkeys-lru
+    
+    # Persistence
+    save 900 1
+    save 300 10
+    save 60 10000
+    
+    # Logging
+    loglevel notice
+    logfile /var/log/redis/redis-server.log
+    ```
+  </Tab>
+</Tabs>
+
+### File-based Storage (No Redis)
+
+```env
+# Disable Redis for simple setup
+REDIS_ENABLED=false
+METADATA_STORE_TYPE=file
+```
+
+**Pros:**
+- No external dependencies
+- Simple setup
+- Good for development/testing
+
+**Cons:**
+- Slower performance
+- Not suitable for concurrent access
+- No caching benefits
+
+## Testing
+
+### Unit Tests
+
+```bash
+# Run all tests
+go test ./...
+
+# Run tests with coverage
+go test -cover ./...
+
+# Run tests with detailed output
+go test -v ./...
+
+# Run specific package tests
+go test ./handlers
+
+# Run specific test
+go test -run TestUploadHandler ./handlers
+
+# Generate coverage report
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out -o coverage.html
+```
+
+### Integration Tests
+
+```bash
+# Set test environment
+export ENV=test
+
+# Run integration tests
+go test -tags=integration ./...
+
+# Test with real Redis
+REDIS_HOST=localhost go test ./utils
+```
+
+### API Testing
+
+```bash
+# Test with curl
+curl -X POST \
+  -H "X-API-Key: dev-api-key-12345" \
+  -F "images=@test-image.jpg" \
+  http://localhost:8080/api/upload
+
+# Test random endpoint
+curl http://localhost:8080/api/random
+
+# Test configuration
+curl http://localhost:8080/api/config
+```
+
+## Performance Optimization
+
+### Development Optimizations
+
+```env
+# Faster development settings
+WORKER_THREADS=2          # Lower for development
+IMAGE_QUALITY=75          # Slightly lower quality
+SPEED=6                   # Faster processing
+DEBUG=true                # Enable debug logging
+```
+
+### Resource Monitoring
+
+```bash
+# Monitor Go application
+go tool pprof http://localhost:8080/debug/pprof/profile
+
+# Monitor memory usage
+ps aux | grep imageflow
+
+# Monitor file handles
+lsof -p $(pgrep imageflow)
+
+# Monitor network connections
+netstat -tulpn | grep imageflow
+```
+
+## Hot Reload Setup
+
+### Using Air (Recommended)
+
+```bash
+# Install Air
+go install github.com/cosmtrek/air@latest
+
+# Create .air.toml configuration
+cat > .air.toml << 'EOF'
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o ./tmp/main ."
+bin = "tmp/main"
+full_bin = "./tmp/main"
+include_ext = ["go", "tpl", "tmpl", "html"]
+exclude_dir = ["assets", "tmp", "vendor", "frontend/node_modules"]
+include_dir = []
+exclude_file = []
+delay = 1000
+stop_on_root_path = false
+log = "build-errors.log"
+
+[log]
+time = false
+
+[color]
+main = "magenta"
+watcher = "cyan"
+build = "yellow"
+runner = "green"
+EOF
+
+# Start with hot reload
+air
+```
+
+### Alternative: Reflex
+
+```bash
+# Install Reflex
+go install github.com/cespare/reflex@latest
+
+# Start with hot reload
+reflex -s -r '\.go$' go run main.go
+```
+
+## Debugging
+
+### VS Code Setup
+
+**.vscode/launch.json:**
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch ImageFlow",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/main.go",
+            "env": {
+                "API_KEY": "dev-api-key-12345",
+                "PORT": "8080",
+                "DEBUG": "true"
+            },
+            "args": []
+        }
+    ]
+}
+```
+
+### Debug Commands
+
+```bash
+# Build with debug symbols
+go build -gcflags="all=-N -l" -o imageflow-debug main.go
+
+# Use Delve debugger
+go install github.com/go-delve/delve/cmd/dlv@latest
+dlv debug main.go
+
+# Debug with breakpoints
+dlv debug main.go -- --config .env
+```
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Port Already in Use">
+    ```bash
+    # Check what's using port 8080
+    lsof -i :8080
+    netstat -tulpn | grep :8080
+
+    # Kill process using port
+    kill $(lsof -ti:8080)
+
+    # Or use different port
+    export PORT=8081
+    go run main.go
+    ```
+  </Accordion>
+
+  <Accordion title="libvips Not Found">
+    ```bash
+    # Ubuntu/Debian
+    sudo apt update
+    sudo apt install libvips-dev
+
+    # macOS
+    brew install vips
+
+    # Verify installation
+    vips --version
+    pkg-config --modversion vips
+    ```
+  </Accordion>
+
+  <Accordion title="Permission Denied">
+    ```bash
+    # Check directory permissions
+    ls -la static/images/
+
+    # Fix permissions
+    chmod 755 static/images/
+    chown -R $USER:$USER static/images/
+
+    # Create directory if missing
+    mkdir -p static/images
+    ```
+  </Accordion>
+
+  <Accordion title="Redis Connection Failed">
+    ```bash
+    # Check Redis status
+    redis-cli ping
+
+    # Start Redis if not running
+    sudo systemctl start redis-server  # Linux
+    brew services start redis           # macOS
+
+    # Check Redis logs
+    tail -f /var/log/redis/redis-server.log
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Log Analysis
+
+```bash
+# View application logs
+tail -f logs/imageflow.log
+
+# Filter error logs
+grep ERROR logs/imageflow.log
+
+# Monitor logs in real-time
+tail -f logs/imageflow.log | grep -E "(ERROR|WARN)"
+
+# Check Go runtime logs
+GODEBUG=gctrace=1 go run main.go
+```
+
+## Production Preparation
+
+### Build Optimization
+
+```bash
+# Build optimized binary
+go build -ldflags="-s -w" -o imageflow main.go
+
+# Build with version info
+VERSION=$(git describe --tags)
+go build -ldflags="-s -w -X main.Version=$VERSION" -o imageflow main.go
+
+# Cross-compile for production
+GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o imageflow-linux main.go
+```
+
+### Security Hardening
+
+```env
+# Production security settings
+DEBUG=false
+LOG_LEVEL=info
+CORS_ORIGINS=https://yourdomain.com
+
+# Use strong API key
+API_KEY=$(openssl rand -hex 32)
+
+# Secure Redis
+REDIS_PASSWORD=$(openssl rand -hex 16)
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Docker Deployment" icon="docker" href="/deployment/docker">
+    Deploy with Docker for production use
+  </Card>
+  
+  <Card title="Production Deployment" icon="server" href="/deployment/production">
+    Production deployment best practices
+  </Card>
+  
+  <Card title="Configuration" icon="gear" href="/configuration/environment">
+    Advanced configuration options
+  </Card>
+  
+  <Card title="Development Guide" icon="code" href="/development/setup">
+    Complete development workflow guide
+  </Card>
+</CardGroup>

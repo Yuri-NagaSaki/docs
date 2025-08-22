@@ -1,0 +1,648 @@
+---
+title: "Image Processing Configuration"
+description: "Configure image optimization, conversion settings, and processing parameters for ImageFlow"
+---
+
+## Image Processing Overview
+
+ImageFlow uses libvips for high-performance image processing, automatically converting uploaded images to modern formats (WebP and AVIF) while maintaining optimal quality and file sizes.
+
+## Processing Pipeline
+
+<Steps>
+  <Step title="Upload">
+    Images are uploaded in their original format (JPEG, PNG, GIF, etc.)
+  </Step>
+  <Step title="Analysis">
+    ImageFlow analyzes the image format, dimensions, and orientation
+  </Step>
+  <Step title="Optimization">
+    Creates optimized versions in WebP and AVIF formats
+  </Step>
+  <Step title="Storage">
+    Stores original and optimized versions in organized directory structure
+  </Step>
+  <Step title="Serving">
+    Serves the best format based on browser support and device type
+  </Step>
+</Steps>
+
+## Configuration Parameters
+
+### Basic Settings
+
+```env
+# Maximum images per upload request
+MAX_UPLOAD_COUNT=20
+
+# Image quality (1-100)
+IMAGE_QUALITY=80
+
+# Processing worker threads
+WORKER_THREADS=4
+
+# Encoding speed vs compression trade-off (0-8)
+SPEED=5
+```
+
+### Advanced Settings
+
+```env
+# Image processing
+MAX_UPLOAD_COUNT=20
+IMAGE_QUALITY=80
+WORKER_THREADS=4
+SPEED=5
+
+# File size limits
+MAX_FILE_SIZE=10485760  # 10MB in bytes
+MAX_TOTAL_SIZE=104857600  # 100MB in bytes
+
+# Image dimension limits
+MAX_WIDTH=8192
+MAX_HEIGHT=8192
+MIN_WIDTH=32
+MIN_HEIGHT=32
+
+# Format-specific quality
+WEBP_QUALITY=80
+AVIF_QUALITY=75
+JPEG_QUALITY=85
+
+# Processing timeouts
+PROCESSING_TIMEOUT=30  # seconds
+UPLOAD_TIMEOUT=120     # seconds
+```
+
+## Quality Settings
+
+<AccordionGroup>
+  <Accordion title="IMAGE_QUALITY">
+    **Type**: Integer  
+    **Range**: 1-100  
+    **Default**: 80  
+    **Description**: Overall image quality for conversion
+
+    ```env
+    # High quality (larger files)
+    IMAGE_QUALITY=95
+
+    # Balanced quality (recommended)
+    IMAGE_QUALITY=80
+
+    # Lower quality (smaller files)
+    IMAGE_QUALITY=65
+    ```
+
+    **Quality Guidelines:**
+    - **95-100**: Near-lossless, very large files
+    - **85-94**: High quality, suitable for professional use
+    - **75-84**: Good quality, balanced size (recommended)
+    - **65-74**: Acceptable quality, smaller files
+    - **50-64**: Lower quality, very small files
+    - **Below 50**: Poor quality, not recommended
+  </Accordion>
+
+  <Accordion title="Format-Specific Quality">
+    Set different quality levels for each output format:
+
+    ```env
+    # WebP tends to produce good quality at lower settings
+    WEBP_QUALITY=75
+
+    # AVIF provides excellent compression
+    AVIF_QUALITY=70
+
+    # JPEG baseline quality
+    JPEG_QUALITY=85
+    ```
+
+    **Format Characteristics:**
+    - **AVIF**: Best compression, newest format
+    - **WebP**: Good compression, wide browser support
+    - **JPEG**: Universal support, moderate compression
+  </Accordion>
+</AccordionGroup>
+
+## Performance Settings
+
+<AccordionGroup>
+  <Accordion title="WORKER_THREADS">
+    **Type**: Integer  
+    **Default**: 4  
+    **Description**: Number of parallel image processing threads
+
+    ```env
+    # Conservative (low CPU usage)
+    WORKER_THREADS=2
+
+    # Balanced
+    WORKER_THREADS=4
+
+    # Aggressive (high performance)
+    WORKER_THREADS=8
+
+    # Match CPU cores
+    WORKER_THREADS=$(nproc)
+    ```
+
+    **Sizing Guidelines:**
+    - **Development**: 2-4 threads
+    - **Production**: Number of CPU cores
+    - **High-traffic**: 1.5x CPU cores (with monitoring)
+    - **Limited resources**: 1-2 threads
+  </Accordion>
+
+  <Accordion title="SPEED">
+    **Type**: Integer  
+    **Range**: 0-8  
+    **Default**: 5  
+    **Description**: Encoding speed vs compression efficiency
+
+    ```env
+    # Slower encoding, better compression
+    SPEED=0
+
+    # Balanced (recommended)
+    SPEED=5
+
+    # Faster encoding, less compression
+    SPEED=8
+    ```
+
+    **Speed vs Quality Trade-off:**
+    - **0-2**: Maximum compression, slow processing
+    - **3-5**: Balanced compression and speed
+    - **6-8**: Fast processing, less compression
+  </Accordion>
+
+  <Accordion title="Processing Timeouts">
+    Prevent hanging processes with appropriate timeouts:
+
+    ```env
+    # Individual image processing timeout
+    PROCESSING_TIMEOUT=30
+
+    # Total upload request timeout
+    UPLOAD_TIMEOUT=120
+
+    # Large image processing timeout
+    LARGE_IMAGE_TIMEOUT=60
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## File Size and Dimension Limits
+
+<AccordionGroup>
+  <Accordion title="File Size Limits">
+    Control upload sizes to prevent resource exhaustion:
+
+    ```env
+    # Maximum single file size (10MB)
+    MAX_FILE_SIZE=10485760
+
+    # Maximum total upload size (100MB)
+    MAX_TOTAL_SIZE=104857600
+
+    # Memory limit for image processing (256MB)
+    MAX_MEMORY_USAGE=268435456
+    ```
+
+    **Size Recommendations:**
+    - **Web images**: 1-5MB max
+    - **High-resolution photos**: 10-20MB max
+    - **Print quality**: 50MB+ (consider dedicated endpoints)
+  </Accordion>
+
+  <Accordion title="Dimension Limits">
+    Set reasonable dimension limits:
+
+    ```env
+    # Maximum dimensions (8K resolution)
+    MAX_WIDTH=8192
+    MAX_HEIGHT=8192
+
+    # Minimum dimensions
+    MIN_WIDTH=32
+    MIN_HEIGHT=32
+
+    # Thumbnail dimensions
+    THUMB_WIDTH=300
+    THUMB_HEIGHT=300
+    ```
+
+    **Dimension Guidelines:**
+    - **Web display**: 1920x1080 typically sufficient
+    - **Retina displays**: 3840x2160 for high DPI
+    - **Print quality**: 300 DPI calculations
+  </Accordion>
+</AccordionGroup>
+
+## Supported Formats
+
+### Input Formats
+
+ImageFlow accepts these input formats:
+
+<CardGroup cols={3}>
+  <Card title="JPEG" icon="image">
+    Universal support, most common format
+  </Card>
+  
+  <Card title="PNG" icon="image">
+    Lossless compression, transparency support
+  </Card>
+  
+  <Card title="WebP" icon="image">
+    Modern format with excellent compression
+  </Card>
+  
+  <Card title="AVIF" icon="image">
+    Next-generation format, best compression
+  </Card>
+  
+  <Card title="GIF" icon="image">
+    Animation support, limited colors
+  </Card>
+  
+  <Card title="TIFF" icon="image">
+    High-quality, often used professionally
+  </Card>
+</CardGroup>
+
+### Output Formats
+
+<Tabs>
+  <Tab title="WebP">
+    **Characteristics:**
+    - 25-35% smaller than JPEG
+    - Supports transparency and animation
+    - Wide browser support (>95%)
+    - Good balance of quality and size
+
+    **Configuration:**
+    ```env
+    WEBP_QUALITY=80
+    WEBP_LOSSLESS=false
+    WEBP_METHOD=4  # 0-6, compression method
+    ```
+  </Tab>
+
+  <Tab title="AVIF">
+    **Characteristics:**
+    - 50% smaller than JPEG
+    - Superior compression algorithm
+    - Growing browser support (~90%)
+    - Best quality-to-size ratio
+
+    **Configuration:**
+    ```env
+    AVIF_QUALITY=75
+    AVIF_SPEED=5   # 0-10, encoding speed
+    AVIF_EFFORT=4  # 0-9, compression effort
+    ```
+  </Tab>
+
+  <Tab title="Original">
+    **Characteristics:**
+    - Preserves original format and quality
+    - Maximum compatibility
+    - Largest file sizes
+    - Required for certain use cases
+
+    **Configuration:**
+    ```env
+    PRESERVE_ORIGINAL=true
+    ORIGINAL_OPTIMIZATION=true  # Lossless optimization
+    ```
+  </Tab>
+</Tabs>
+
+## Device-Specific Processing
+
+### Orientation Detection
+
+ImageFlow automatically serves different orientations based on device:
+
+```env
+# Enable automatic orientation detection
+AUTO_ORIENTATION=true
+
+# Portrait/landscape threshold (aspect ratio)
+ORIENTATION_THRESHOLD=1.2
+
+# Mobile device portrait preference
+MOBILE_PORTRAIT_PREFERENCE=true
+
+# Desktop landscape preference
+DESKTOP_LANDSCAPE_PREFERENCE=true
+```
+
+### Responsive Processing
+
+Create multiple sizes for responsive serving:
+
+```env
+# Enable responsive image generation
+RESPONSIVE_IMAGES=true
+
+# Generate these sizes automatically
+RESPONSIVE_SIZES=320,640,960,1280,1920
+
+# Quality reduction for smaller sizes
+RESPONSIVE_QUALITY_REDUCTION=5  # Reduce quality by 5 per step down
+```
+
+## Advanced Processing Options
+
+<AccordionGroup>
+  <Accordion title="Smart Cropping">
+    Automatically crop images to focus on important content:
+
+    ```env
+    # Enable smart cropping
+    SMART_CROP=true
+
+    # Cropping algorithm
+    CROP_ALGORITHM=attention  # attention, entropy, face
+
+    # Crop to common aspect ratios
+    CROP_RATIOS=1:1,4:3,16:9,3:2
+
+    # Minimum crop size
+    MIN_CROP_SIZE=200
+    ```
+  </Accordion>
+
+  <Accordion title="Color Space Management">
+    Handle color profiles and spaces:
+
+    ```env
+    # Color space conversion
+    COLOR_SPACE=srgb  # srgb, p3, rec2020
+
+    # Strip color profiles (smaller files)
+    STRIP_PROFILES=true
+
+    # Preserve ICC profiles for professional use
+    PRESERVE_ICC=false
+    ```
+  </Accordion>
+
+  <Accordion title="Metadata Handling">
+    Control EXIF and other metadata:
+
+    ```env
+    # Strip all metadata (privacy and size)
+    STRIP_METADATA=true
+
+    # Preserve specific metadata
+    PRESERVE_ORIENTATION=true
+    PRESERVE_COPYRIGHT=false
+
+    # Extract metadata for search
+    EXTRACT_METADATA=true
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Processing Monitoring
+
+### Performance Metrics
+
+Monitor processing performance:
+
+```bash
+# Check processing queue
+curl -H "X-API-Key: your-key" http://localhost:8080/api/processing/status
+
+# View processing statistics
+curl -H "X-API-Key: your-key" http://localhost:8080/api/processing/stats
+```
+
+### Resource Usage
+
+Monitor system resources during processing:
+
+```bash
+# CPU usage
+top -p $(pgrep imageflow)
+
+# Memory usage
+ps aux | grep imageflow
+
+# I/O usage
+iotop -p $(pgrep imageflow)
+
+# libvips cache status
+vips cache --status
+```
+
+## Optimization Strategies
+
+### By Use Case
+
+<Tabs>
+  <Tab title="Web Gallery">
+    Optimize for viewing on various devices:
+
+    ```env
+    IMAGE_QUALITY=82
+    WEBP_QUALITY=80
+    AVIF_QUALITY=75
+    WORKER_THREADS=4
+    SPEED=5
+    RESPONSIVE_IMAGES=true
+    ```
+  </Tab>
+
+  <Tab title="E-commerce">
+    Balance quality and loading speed:
+
+    ```env
+    IMAGE_QUALITY=85
+    WEBP_QUALITY=82
+    AVIF_QUALITY=78
+    WORKER_THREADS=6
+    SPEED=4
+    SMART_CROP=true
+    ```
+  </Tab>
+
+  <Tab title="Photography Portfolio">
+    Prioritize quality over file size:
+
+    ```env
+    IMAGE_QUALITY=92
+    WEBP_QUALITY=90
+    AVIF_QUALITY=85
+    WORKER_THREADS=8
+    SPEED=2
+    PRESERVE_ICC=true
+    ```
+  </Tab>
+
+  <Tab title="High Volume">
+    Optimize for throughput:
+
+    ```env
+    IMAGE_QUALITY=75
+    WEBP_QUALITY=72
+    AVIF_QUALITY=68
+    WORKER_THREADS=12
+    SPEED=7
+    PROCESSING_TIMEOUT=15
+    ```
+  </Tab>
+</Tabs>
+
+### By Server Resources
+
+<Tabs>
+  <Tab title="Low Resources">
+    Conservative settings for limited hardware:
+
+    ```env
+    WORKER_THREADS=2
+    IMAGE_QUALITY=75
+    SPEED=6
+    MAX_FILE_SIZE=5242880  # 5MB
+    PROCESSING_TIMEOUT=60
+    ```
+  </Tab>
+
+  <Tab title="High Performance">
+    Aggressive settings for powerful hardware:
+
+    ```env
+    WORKER_THREADS=16
+    IMAGE_QUALITY=85
+    SPEED=3
+    MAX_FILE_SIZE=52428800  # 50MB
+    PROCESSING_TIMEOUT=120
+    ```
+  </Tab>
+</Tabs>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Processing Failures">
+    ```bash
+    # Check libvips installation
+    vips --version
+
+    # Test image processing
+    vips copy input.jpg output.webp
+
+    # Check ImageFlow logs
+    tail -f /var/log/imageflow/processing.log
+
+    # Verify file permissions
+    ls -la /path/to/images/
+    ```
+  </Accordion>
+
+  <Accordion title="Memory Issues">
+    ```bash
+    # Monitor memory usage
+    free -h
+    ps aux --sort=-%mem | head
+
+    # Adjust settings
+    # Reduce WORKER_THREADS
+    # Lower MAX_FILE_SIZE
+    # Decrease IMAGE_QUALITY
+
+    # Check swap usage
+    swapon --show
+    ```
+  </Accordion>
+
+  <Accordion title="Performance Issues">
+    ```bash
+    # Check CPU usage
+    htop
+
+    # Monitor I/O
+    iotop
+
+    # Profile processing
+    time vips copy large_image.jpg output.webp
+
+    # Optimize settings
+    # Increase SPEED setting
+    # Adjust WORKER_THREADS
+    # Reduce quality for better performance
+    ```
+  </Accordion>
+
+  <Accordion title="Format Support Issues">
+    ```bash
+    # Check supported formats
+    vips --list
+
+    # Test specific format conversion
+    vips copy input.jpg output.avif
+
+    # Check libvips build features
+    pkg-config --modversion vips
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## libvips Performance Tuning
+
+### Cache Configuration
+
+```bash
+# Set libvips cache size (in MB)
+export VIPS_CACHE_MAX=200
+
+# Set cache maximum operations
+export VIPS_CACHE_MAX_OPS=1000
+
+# Disable cache for memory-constrained systems
+export VIPS_CACHE_MAX=0
+```
+
+### Thread Configuration
+
+```bash
+# Set libvips thread limit
+export VIPS_CONCURRENCY=8
+
+# Disable threading for debugging
+export VIPS_CONCURRENCY=1
+```
+
+### Memory Management
+
+```bash
+# Set memory allocation limit
+export VIPS_CACHE_TRACE=1
+
+# Use alternative memory allocator
+export G_SLICE=always-malloc
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/api-reference/upload">
+    Learn about image upload API endpoints
+  </Card>
+  
+  <Card title="Frontend Usage" icon="window" href="/frontend/upload">
+    Understand the web interface upload features
+  </Card>
+  
+  <Card title="Deployment" icon="server" href="/deployment/production">
+    Deploy ImageFlow to production
+  </Card>
+  
+  <Card title="Monitoring" icon="chart-line" href="/deployment/monitoring">
+    Monitor image processing performance
+  </Card>
+</CardGroup>

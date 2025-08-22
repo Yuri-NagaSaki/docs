@@ -1,0 +1,708 @@
+---
+title: "Redis Configuration"
+description: "Configure Redis for fast metadata storage and improved ImageFlow performance"
+---
+
+## Redis Overview
+
+Redis provides fast, in-memory metadata storage for ImageFlow, significantly improving performance over file-based metadata storage. It stores image metadata, tags, upload information, and other frequently accessed data.
+
+## Benefits of Using Redis
+
+<CardGroup cols={2}>
+  <Card title="Performance" icon="zap">
+    Sub-millisecond response times for metadata operations
+  </Card>
+  
+  <Card title="Scalability" icon="expand">
+    Handle thousands of concurrent requests efficiently
+  </Card>
+  
+  <Card title="Persistence" icon="database">
+    Configurable data persistence with snapshots and AOF
+  </Card>
+  
+  <Card title="Reliability" icon="shield">
+    Built-in replication and high availability options
+  </Card>
+</CardGroup>
+
+## Redis Installation
+
+<Tabs>
+  <Tab title="Ubuntu/Debian">
+    ```bash
+    # Update package index
+    sudo apt update
+
+    # Install Redis
+    sudo apt install redis-server
+
+    # Start and enable Redis service
+    sudo systemctl start redis-server
+    sudo systemctl enable redis-server
+
+    # Verify installation
+    redis-cli ping
+    ```
+
+    **Expected output:**
+    ```
+    PONG
+    ```
+  </Tab>
+
+  <Tab title="CentOS/RHEL">
+    ```bash
+    # Install EPEL repository (if not already installed)
+    sudo yum install epel-release
+
+    # Install Redis
+    sudo yum install redis
+
+    # Start and enable Redis service
+    sudo systemctl start redis
+    sudo systemctl enable redis
+
+    # Verify installation
+    redis-cli ping
+    ```
+  </Tab>
+
+  <Tab title="macOS">
+    ```bash
+    # Using Homebrew
+    brew install redis
+
+    # Start Redis service
+    brew services start redis
+
+    # Or start manually
+    redis-server /usr/local/etc/redis.conf
+
+    # Verify installation
+    redis-cli ping
+    ```
+  </Tab>
+
+  <Tab title="Docker">
+    ```bash
+    # Run Redis container
+    docker run -d \
+      --name redis \
+      -p 6379:6379 \
+      -v redis-data:/data \
+      redis:7-alpine
+
+    # With persistence configuration
+    docker run -d \
+      --name redis \
+      -p 6379:6379 \
+      -v redis-data:/data \
+      -v ./redis.conf:/usr/local/etc/redis/redis.conf \
+      redis:7-alpine redis-server /usr/local/etc/redis/redis.conf
+
+    # Verify installation
+    docker exec redis redis-cli ping
+    ```
+
+    **Docker Compose:**
+    ```yaml
+    services:
+      redis:
+        image: redis:7-alpine
+        container_name: redis
+        ports:
+          - "6379:6379"
+        volumes:
+          - redis-data:/data
+          - ./redis.conf:/usr/local/etc/redis/redis.conf
+        command: redis-server /usr/local/etc/redis/redis.conf
+        restart: unless-stopped
+
+    volumes:
+      redis-data:
+    ```
+  </Tab>
+</Tabs>
+
+## ImageFlow Redis Configuration
+
+Configure ImageFlow to use Redis by setting these environment variables:
+
+### Basic Configuration
+
+```env
+# Enable Redis
+REDIS_ENABLED=true
+
+# Redis connection
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+
+# Metadata storage type
+METADATA_STORE_TYPE=redis
+```
+
+### Advanced Configuration
+
+```env
+# Redis connection
+REDIS_ENABLED=true
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=your-secure-password
+REDIS_DB=0
+
+# Connection pool settings
+REDIS_MAX_IDLE=10
+REDIS_MAX_ACTIVE=100
+REDIS_IDLE_TIMEOUT=300
+
+# Metadata configuration
+METADATA_STORE_TYPE=redis
+METADATA_TTL=86400  # 24 hours in seconds
+```
+
+### Connection Options
+
+<AccordionGroup>
+  <Accordion title="REDIS_HOST">
+    **Type**: String  
+    **Default**: `localhost`  
+    **Description**: Redis server hostname or IP address
+
+    ```env
+    # Local Redis
+    REDIS_HOST=localhost
+
+    # Remote Redis
+    REDIS_HOST=redis.yourdomain.com
+
+    # Docker service name
+    REDIS_HOST=redis
+
+    # IP address
+    REDIS_HOST=192.168.1.100
+    ```
+  </Accordion>
+
+  <Accordion title="REDIS_PORT">
+    **Type**: Integer  
+    **Default**: `6379`  
+    **Description**: Redis server port
+
+    ```env
+    # Default port
+    REDIS_PORT=6379
+
+    # Custom port
+    REDIS_PORT=6380
+    ```
+  </Accordion>
+
+  <Accordion title="REDIS_PASSWORD">
+    **Type**: String  
+    **Default**: Empty  
+    **Description**: Redis authentication password
+
+    ```env
+    # No password (development only)
+    REDIS_PASSWORD=
+
+    # With password (recommended for production)
+    REDIS_PASSWORD=your-secure-redis-password
+    ```
+
+    <Warning>Always use authentication in production environments</Warning>
+  </Accordion>
+
+  <Accordion title="REDIS_DB">
+    **Type**: Integer  
+    **Default**: `0`  
+    **Range**: `0-15`  
+    **Description**: Redis database number
+
+    ```env
+    # Default database
+    REDIS_DB=0
+
+    # Separate database for isolation
+    REDIS_DB=1
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Redis Security Configuration
+
+### Enable Authentication
+
+Edit Redis configuration file (`/etc/redis/redis.conf`):
+
+```conf
+# Require password authentication
+requirepass your-secure-redis-password
+
+# Rename dangerous commands
+rename-command FLUSHDB ""
+rename-command FLUSHALL ""
+rename-command DEBUG ""
+rename-command CONFIG "CONFIG_b840fc02d524045429941cc15f59e41cb7be6c52"
+```
+
+### Network Security
+
+```conf
+# Bind to specific interfaces
+bind 127.0.0.1 192.168.1.100
+
+# Disable protected mode (only if using authentication)
+protected-mode yes
+
+# Change default port (optional)
+port 6380
+```
+
+### TLS/SSL Configuration
+
+```conf
+# Enable TLS
+tls-port 6380
+port 0
+
+# TLS certificate files
+tls-cert-file /etc/redis/tls/redis.crt
+tls-key-file /etc/redis/tls/redis.key
+tls-ca-cert-file /etc/redis/tls/ca.crt
+
+# TLS protocols
+tls-protocols "TLSv1.2 TLSv1.3"
+```
+
+**ImageFlow TLS Configuration:**
+```env
+REDIS_HOST=redis.yourdomain.com
+REDIS_PORT=6380
+REDIS_PASSWORD=your-password
+REDIS_TLS=true
+REDIS_TLS_CERT=/path/to/client.crt
+REDIS_TLS_KEY=/path/to/client.key
+```
+
+## Redis Performance Tuning
+
+### Memory Configuration
+
+```conf
+# Set maximum memory usage
+maxmemory 2gb
+
+# Memory eviction policy
+maxmemory-policy allkeys-lru
+
+# Save snapshots based on changes
+save 900 1
+save 300 10
+save 60 10000
+
+# Disable save for maximum performance (if persistence not needed)
+# save ""
+```
+
+### Network Performance
+
+```conf
+# TCP keep alive
+tcp-keepalive 300
+
+# TCP backlog
+tcp-backlog 511
+
+# Client timeout
+timeout 0
+
+# Output buffer limits
+client-output-buffer-limit normal 0 0 0
+client-output-buffer-limit replica 256mb 64mb 60
+client-output-buffer-limit pubsub 32mb 8mb 60
+```
+
+### I/O Configuration
+
+```conf
+# Enable AOF persistence for durability
+appendonly yes
+appendfilename "appendonly.aof"
+appendfsync everysec
+
+# AOF rewrite configuration
+auto-aof-rewrite-percentage 100
+auto-aof-rewrite-min-size 64mb
+
+# Disable slow log for performance
+slowlog-log-slower-than -1
+```
+
+## Redis Cluster Setup
+
+For high availability and scalability, configure Redis Cluster:
+
+### Cluster Configuration
+
+```conf
+# Enable cluster mode
+cluster-enabled yes
+cluster-config-file nodes.conf
+cluster-node-timeout 15000
+
+# Cluster require full coverage
+cluster-require-full-coverage no
+```
+
+### ImageFlow Cluster Configuration
+
+```env
+REDIS_ENABLED=true
+REDIS_CLUSTER=true
+REDIS_HOSTS=redis1:6379,redis2:6379,redis3:6379
+REDIS_PASSWORD=cluster-password
+```
+
+### Docker Cluster Setup
+
+```yaml
+version: '3.8'
+
+services:
+  redis-1:
+    image: redis:7-alpine
+    ports:
+      - "7001:6379"
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000
+    volumes:
+      - redis-1-data:/data
+
+  redis-2:
+    image: redis:7-alpine
+    ports:
+      - "7002:6379"
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000
+    volumes:
+      - redis-2-data:/data
+
+  redis-3:
+    image: redis:7-alpine
+    ports:
+      - "7003:6379"
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000
+    volumes:
+      - redis-3-data:/data
+
+volumes:
+  redis-1-data:
+  redis-2-data:
+  redis-3-data:
+```
+
+## Data Persistence
+
+### RDB Snapshots
+
+```conf
+# Automatic snapshots
+save 900 1      # Save if at least 1 key changed in 900 seconds
+save 300 10     # Save if at least 10 keys changed in 300 seconds
+save 60 10000   # Save if at least 10000 keys changed in 60 seconds
+
+# Snapshot file
+dbfilename dump.rdb
+dir /var/lib/redis
+
+# Compression
+rdbcompression yes
+rdbchecksum yes
+```
+
+### AOF (Append Only File)
+
+```conf
+# Enable AOF
+appendonly yes
+appendfilename "appendonly.aof"
+
+# Sync frequency
+appendfsync everysec  # Recommended
+# appendfsync always   # Safest but slower
+# appendfsync no       # Fastest but less safe
+
+# AOF rewrite
+auto-aof-rewrite-percentage 100
+auto-aof-rewrite-min-size 64mb
+```
+
+## Monitoring Redis
+
+### Basic Monitoring
+
+```bash
+# Check Redis status
+redis-cli ping
+
+# Get server info
+redis-cli info
+
+# Monitor commands in real-time
+redis-cli monitor
+
+# Check memory usage
+redis-cli info memory
+
+# View connected clients
+redis-cli client list
+
+# Check slow queries
+redis-cli slowlog get 10
+```
+
+### Performance Metrics
+
+```bash
+# Key statistics
+redis-cli info stats
+
+# Memory statistics
+redis-cli info memory
+
+# Replication status
+redis-cli info replication
+
+# Cluster status (if using cluster)
+redis-cli cluster info
+```
+
+### Redis Monitoring Tools
+
+<Tabs>
+  <Tab title="Redis CLI">
+    ```bash
+    # Continuous monitoring
+    redis-cli --stat
+
+    # Latency monitoring
+    redis-cli --latency
+
+    # Big keys analysis
+    redis-cli --bigkeys
+
+    # Memory usage analysis
+    redis-cli --memkeys
+    ```
+  </Tab>
+
+  <Tab title="Redis Insight">
+    ```bash
+    # Install Redis Insight (GUI tool)
+    docker run -d \
+      --name redis-insight \
+      -p 8001:8001 \
+      redislabs/redisinsight:latest
+    ```
+
+    Access at `http://localhost:8001`
+  </Tab>
+
+  <Tab title="Prometheus + Grafana">
+    ```yaml
+    # Redis exporter for Prometheus
+    services:
+      redis-exporter:
+        image: oliver006/redis_exporter
+        ports:
+          - "9121:9121"
+        environment:
+          - REDIS_ADDR=redis://redis:6379
+          - REDIS_PASSWORD=your-password
+    ```
+  </Tab>
+</Tabs>
+
+## Backup and Recovery
+
+### Backup Strategies
+
+<Tabs>
+  <Tab title="RDB Backup">
+    ```bash
+    # Manual snapshot
+    redis-cli BGSAVE
+
+    # Automated backup script
+    #!/bin/bash
+    BACKUP_DIR="/backup/redis"
+    DATE=$(date +%Y%m%d_%H%M%S)
+
+    # Create backup directory
+    mkdir -p "$BACKUP_DIR"
+
+    # Create snapshot
+    redis-cli BGSAVE
+
+    # Wait for snapshot to complete
+    while [ $(redis-cli LASTSAVE) -eq $(redis-cli LASTSAVE) ]; do
+      sleep 1
+    done
+
+    # Copy snapshot
+    cp /var/lib/redis/dump.rdb "$BACKUP_DIR/dump_$DATE.rdb"
+
+    # Compress backup
+    gzip "$BACKUP_DIR/dump_$DATE.rdb"
+
+    # Clean old backups (keep 7 days)
+    find "$BACKUP_DIR" -name "dump_*.rdb.gz" -mtime +7 -delete
+    ```
+  </Tab>
+
+  <Tab title="AOF Backup">
+    ```bash
+    # Copy AOF file
+    cp /var/lib/redis/appendonly.aof /backup/redis/aof_$(date +%Y%m%d).aof
+
+    # Or use Redis rewrite
+    redis-cli BGREWRITEAOF
+    ```
+  </Tab>
+</Tabs>
+
+### Recovery Procedures
+
+```bash
+# Stop Redis service
+sudo systemctl stop redis
+
+# Restore RDB file
+cp /backup/redis/dump.rdb /var/lib/redis/dump.rdb
+
+# Or restore AOF file
+cp /backup/redis/appendonly.aof /var/lib/redis/appendonly.aof
+
+# Set correct permissions
+chown redis:redis /var/lib/redis/*.rdb /var/lib/redis/*.aof
+chmod 660 /var/lib/redis/*.rdb /var/lib/redis/*.aof
+
+# Start Redis service
+sudo systemctl start redis
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Connection Refused">
+    ```bash
+    # Check if Redis is running
+    sudo systemctl status redis
+
+    # Check Redis logs
+    sudo journalctl -u redis -f
+
+    # Test connection
+    redis-cli ping
+
+    # Check firewall
+    sudo ufw status
+    sudo iptables -L
+    ```
+  </Accordion>
+
+  <Accordion title="Authentication Failed">
+    ```bash
+    # Test with password
+    redis-cli -a your-password ping
+
+    # Check password in config
+    grep requirepass /etc/redis/redis.conf
+
+    # Verify ImageFlow configuration
+    echo $REDIS_PASSWORD
+    ```
+  </Accordion>
+
+  <Accordion title="High Memory Usage">
+    ```bash
+    # Check memory usage
+    redis-cli info memory
+
+    # Find large keys
+    redis-cli --bigkeys
+
+    # Set memory limit
+    redis-cli CONFIG SET maxmemory 2gb
+    redis-cli CONFIG SET maxmemory-policy allkeys-lru
+    ```
+  </Accordion>
+
+  <Accordion title="Slow Performance">
+    ```bash
+    # Check slow log
+    redis-cli slowlog get 10
+
+    # Monitor latency
+    redis-cli --latency
+
+    # Check system resources
+    top
+    iotop
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Redis vs File-based Metadata
+
+| Feature | Redis | File-based |
+|---------|--------|------------|
+| **Speed** | Sub-millisecond | Milliseconds |
+| **Concurrency** | Excellent | Limited |
+| **Memory Usage** | Higher | Lower |
+| **Persistence** | Configurable | Automatic |
+| **Scaling** | Horizontal | Vertical only |
+| **Complexity** | Medium | Low |
+
+## Migration from File-based to Redis
+
+ImageFlow provides automatic migration when switching from file-based to Redis metadata storage:
+
+```bash
+# Stop ImageFlow
+sudo systemctl stop imageflow
+
+# Update configuration
+sed -i 's/REDIS_ENABLED=false/REDIS_ENABLED=true/' .env
+echo "METADATA_STORE_TYPE=redis" >> .env
+
+# Start ImageFlow (automatic migration will occur)
+sudo systemctl start imageflow
+
+# Monitor migration progress
+tail -f /var/log/imageflow/imageflow.log
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Image Processing" icon="image" href="/configuration/image-processing">
+    Configure image optimization settings
+  </Card>
+  
+  <Card title="Production Deployment" icon="server" href="/deployment/production">
+    Deploy ImageFlow to production
+  </Card>
+  
+  <Card title="Monitoring" icon="chart-line" href="/deployment/monitoring">
+    Set up comprehensive monitoring
+  </Card>
+  
+  <Card title="Performance Tuning" icon="gauge" href="/deployment/performance">
+    Optimize ImageFlow performance
+  </Card>
+</CardGroup>

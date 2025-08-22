@@ -1,0 +1,704 @@
+---
+title: "Frontend Overview"
+description: "ImageFlow's modern React-based web interface with drag-and-drop upload and beautiful gallery"
+---
+
+## Frontend Architecture
+
+ImageFlow's frontend is built with modern web technologies to provide an intuitive and responsive user experience. The interface is designed for both content creators and administrators who need to manage large image collections efficiently.
+
+<CardGroup cols={2}>
+  <Card title="Modern Stack" icon="react">
+    Built with Next.js 14, React 18, and TypeScript
+  </Card>
+  
+  <Card title="Responsive Design" icon="mobile">
+    Mobile-first design that works on all devices
+  </Card>
+  
+  <Card title="Dark Mode" icon="moon">
+    Beautiful dark and light themes with automatic switching
+  </Card>
+  
+  <Card title="Fast Performance" icon="zap">
+    Optimized with static generation and client-side hydration
+  </Card>
+</CardGroup>
+
+## Technology Stack
+
+### Core Technologies
+
+- **Next.js 14**: React framework with App Router
+- **React 18**: Modern React with concurrent features
+- **TypeScript**: Type-safe development
+- **Tailwind CSS**: Utility-first CSS framework
+- **Framer Motion**: Smooth animations and transitions
+- **Lucide Icons**: Beautiful and consistent iconography
+
+### Key Features
+
+<AccordionGroup>
+  <Accordion title="Static Export">
+    The frontend is built as a static site and embedded directly into the Go binary, enabling single-file deployment with no external dependencies.
+  </Accordion>
+
+  <Accordion title="Progressive Enhancement">
+    Core functionality works without JavaScript, with enhanced features added progressively for better user experience.
+  </Accordion>
+
+  <Accordion title="Responsive Images">
+    Automatic image optimization with responsive loading based on device capabilities and viewport size.
+  </Accordion>
+
+  <Accordion title="Real-time Updates">
+    WebSocket integration for live upload progress and processing status updates.
+  </Accordion>
+</AccordionGroup>
+
+## File Structure
+
+```
+frontend/
+├── app/                    # Next.js App Router
+│   ├── components/         # React components
+│   │   ├── ui/            # Reusable UI components
+│   │   ├── upload/        # Upload-related components
+│   │   └── ...
+│   ├── hooks/             # Custom React hooks
+│   ├── utils/             # Utility functions
+│   ├── types/             # TypeScript type definitions
+│   ├── globals.css        # Global styles
+│   ├── layout.tsx         # Root layout component
+│   └── page.tsx          # Home page
+├── public/                # Static assets
+├── package.json           # Dependencies and scripts
+├── tailwind.config.js     # Tailwind configuration
+├── next.config.mjs        # Next.js configuration
+└── tsconfig.json         # TypeScript configuration
+```
+
+## Component Architecture
+
+### Layout Components
+
+<Tabs>
+  <Tab title="Root Layout">
+    **app/layout.tsx** - The main layout wrapper
+    ```tsx
+    import { Header } from '@/components/Header'
+    import { ToastContainer } from '@/components/ToastContainer'
+    import { ThemeProvider } from '@/components/ThemeProvider'
+
+    export default function RootLayout({
+      children,
+    }: {
+      children: React.ReactNode
+    }) {
+      return (
+        <html lang="en">
+          <body>
+            <ThemeProvider>
+              <div className="min-h-screen bg-background">
+                <Header />
+                <main className="container mx-auto px-4 py-8">
+                  {children}
+                </main>
+                <ToastContainer />
+              </div>
+            </ThemeProvider>
+          </body>
+        </html>
+      )
+    }
+    ```
+  </Tab>
+
+  <Tab title="Header Component">
+    **app/components/Header.tsx** - Navigation and theme controls
+    ```tsx
+    import { useState } from 'react'
+    import { Moon, Sun, Upload, Images, Settings } from 'lucide-react'
+    import { useTheme } from '@/hooks/useTheme'
+
+    export function Header() {
+      const { theme, toggleTheme } = useTheme()
+
+      return (
+        <header className="border-b bg-card">
+          <div className="container mx-auto flex h-16 items-center justify-between px-4">
+            <div className="flex items-center space-x-2">
+              <Images className="h-8 w-8 text-primary" />
+              <h1 className="text-xl font-bold">ImageFlow</h1>
+            </div>
+
+            <nav className="flex items-center space-x-4">
+              <a href="/" className="flex items-center space-x-1 text-sm">
+                <Upload className="h-4 w-4" />
+                <span>Upload</span>
+              </a>
+              
+              <a href="/manage" className="flex items-center space-x-1 text-sm">
+                <Settings className="h-4 w-4" />
+                <span>Manage</span>
+              </a>
+
+              <button
+                onClick={toggleTheme}
+                className="rounded-md p-2 hover:bg-accent"
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+              </button>
+            </nav>
+          </div>
+        </header>
+      )
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Core Components
+
+<AccordionGroup>
+  <Accordion title="Upload Components">
+    - **UploadDropzone**: Drag-and-drop file upload area
+    - **UploadProgress**: Real-time upload progress tracking
+    - **ImagePreviewGrid**: Preview of selected images before upload
+    - **TagSelector**: Interface for adding tags to images
+    - **ExpirySelector**: Set expiration time for uploaded images
+  </Accordion>
+
+  <Accordion title="Gallery Components">
+    - **ImageCard**: Individual image display with metadata
+    - **ImageModal**: Full-screen image viewer with navigation
+    - **ImageFilters**: Filter interface for browsing images
+    - **MasonryLayout**: Responsive masonry grid layout
+    - **LoadingSpinner**: Loading states and skeleton screens
+  </Accordion>
+
+  <Accordion title="Management Components">
+    - **ImageInfo**: Detailed image information and metadata
+    - **ImageUrls**: Copy URLs for different formats and sizes
+    - **DeleteConfirm**: Confirmation modal for image deletion
+    - **BulkActions**: Multi-select operations for images
+    - **ApiKeyModal**: API key management interface
+  </Accordion>
+</AccordionGroup>
+
+## Styling System
+
+### Tailwind CSS Configuration
+
+**tailwind.config.js:**
+```javascript
+const { fontFamily } = require("tailwindcss/defaultTheme")
+
+module.exports = {
+  content: [
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
+  ],
+  darkMode: ["class"],
+  theme: {
+    extend: {
+      colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+      },
+      fontFamily: {
+        sans: ["var(--font-sans)", ...fontFamily.sans],
+      },
+      animation: {
+        "fade-in": "fadeIn 0.5s ease-in-out",
+        "slide-up": "slideUp 0.3s ease-out",
+        "scale-in": "scaleIn 0.2s ease-out",
+      },
+      keyframes: {
+        fadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        slideUp: {
+          "0%": { transform: "translateY(10px)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+        scaleIn: {
+          "0%": { transform: "scale(0.95)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "1" },
+        },
+      },
+    },
+  },
+  plugins: [require("tailwindcss-animate")],
+}
+```
+
+### CSS Custom Properties
+
+**app/globals.css:**
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 94.1%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-secondary;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-foreground;
+}
+```
+
+## State Management
+
+### Custom Hooks
+
+<Tabs>
+  <Tab title="useConfig">
+    **app/hooks/useConfig.ts** - System configuration management
+    ```tsx
+    import { useState, useEffect } from 'react'
+
+    interface Config {
+      maxFileSize: number
+      maxFilesPerRequest: number
+      supportedFormats: string[]
+      imageQuality: number
+    }
+
+    export function useConfig() {
+      const [config, setConfig] = useState<Config | null>(null)
+      const [loading, setLoading] = useState(true)
+      const [error, setError] = useState<string | null>(null)
+
+      useEffect(() => {
+        fetch('/api/config')
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              setConfig(data.data)
+            } else {
+              setError(data.error.message)
+            }
+          })
+          .catch(err => setError(err.message))
+          .finally(() => setLoading(false))
+      }, [])
+
+      return { config, loading, error }
+    }
+    ```
+  </Tab>
+
+  <Tab title="useTheme">
+    **app/hooks/useTheme.ts** - Theme management
+    ```tsx
+    import { useState, useEffect } from 'react'
+
+    type Theme = 'light' | 'dark' | 'system'
+
+    export function useTheme() {
+      const [theme, setTheme] = useState<Theme>('system')
+
+      useEffect(() => {
+        const stored = localStorage.getItem('theme') as Theme
+        if (stored) {
+          setTheme(stored)
+        }
+      }, [])
+
+      useEffect(() => {
+        const root = window.document.documentElement
+        root.classList.remove('light', 'dark')
+
+        if (theme === 'system') {
+          const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
+            .matches ? 'dark' : 'light'
+          root.classList.add(systemTheme)
+        } else {
+          root.classList.add(theme)
+        }
+      }, [theme])
+
+      const toggleTheme = () => {
+        const newTheme = theme === 'light' ? 'dark' : 'light'
+        setTheme(newTheme)
+        localStorage.setItem('theme', newTheme)
+      }
+
+      return { theme, setTheme, toggleTheme }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Performance Optimizations
+
+### Image Loading
+
+```tsx
+// Optimized image component
+import { useState, useRef, useEffect } from 'react'
+
+interface OptimizedImageProps {
+  src: string
+  alt: string
+  className?: string
+  sizes?: string
+}
+
+export function OptimizedImage({ 
+  src, 
+  alt, 
+  className,
+  sizes = "100vw"
+}: OptimizedImageProps) {
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [error, setError] = useState(false)
+  const imgRef = useRef<HTMLImageElement>(null)
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && imgRef.current) {
+          imgRef.current.src = src
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    if (imgRef.current) {
+      observer.observe(imgRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [src])
+
+  return (
+    <div className={`relative overflow-hidden ${className}`}>
+      <img
+        ref={imgRef}
+        alt={alt}
+        sizes={sizes}
+        className={`
+          transition-opacity duration-300
+          ${isLoaded ? 'opacity-100' : 'opacity-0'}
+        `}
+        onLoad={() => setIsLoaded(true)}
+        onError={() => setError(true)}
+      />
+      
+      {!isLoaded && !error && (
+        <div className="absolute inset-0 bg-muted animate-pulse" />
+      )}
+      
+      {error && (
+        <div className="absolute inset-0 bg-muted flex items-center justify-center">
+          <span className="text-muted-foreground">Failed to load</span>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Virtual Scrolling
+
+```tsx
+// Virtual scrolling for large image lists
+import { useState, useEffect, useCallback } from 'react'
+
+interface VirtualScrollProps {
+  items: any[]
+  itemHeight: number
+  containerHeight: number
+  renderItem: (item: any, index: number) => React.ReactNode
+}
+
+export function VirtualScroll({
+  items,
+  itemHeight,
+  containerHeight,
+  renderItem
+}: VirtualScrollProps) {
+  const [scrollTop, setScrollTop] = useState(0)
+
+  const visibleStart = Math.floor(scrollTop / itemHeight)
+  const visibleEnd = Math.min(
+    visibleStart + Math.ceil(containerHeight / itemHeight) + 1,
+    items.length
+  )
+
+  const visibleItems = items.slice(visibleStart, visibleEnd)
+
+  const handleScroll = useCallback((e: React.UIEvent) => {
+    setScrollTop(e.currentTarget.scrollTop)
+  }, [])
+
+  return (
+    <div
+      className="overflow-auto"
+      style={{ height: containerHeight }}
+      onScroll={handleScroll}
+    >
+      <div style={{ height: items.length * itemHeight, position: 'relative' }}>
+        <div
+          style={{
+            transform: `translateY(${visibleStart * itemHeight}px)`,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+          }}
+        >
+          {visibleItems.map((item, index) =>
+            renderItem(item, visibleStart + index)
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+## Accessibility
+
+### ARIA Labels and Keyboard Navigation
+
+```tsx
+// Accessible image gallery
+export function ImageGallery({ images }: { images: Image[] }) {
+  const [selectedIndex, setSelectedIndex] = useState(-1)
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    switch (e.key) {
+      case 'ArrowRight':
+        setSelectedIndex(prev => 
+          prev < images.length - 1 ? prev + 1 : prev
+        )
+        break
+      case 'ArrowLeft':
+        setSelectedIndex(prev => prev > 0 ? prev - 1 : prev)
+        break
+      case 'Enter':
+      case ' ':
+        if (selectedIndex >= 0) {
+          // Open image modal
+        }
+        break
+      case 'Escape':
+        setSelectedIndex(-1)
+        break
+    }
+  }
+
+  return (
+    <div
+      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+      role="grid"
+      aria-label="Image gallery"
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+    >
+      {images.map((image, index) => (
+        <div
+          key={image.id}
+          role="gridcell"
+          className={`
+            cursor-pointer rounded-lg overflow-hidden
+            focus:outline-none focus:ring-2 focus:ring-primary
+            ${selectedIndex === index ? 'ring-2 ring-primary' : ''}
+          `}
+          tabIndex={selectedIndex === index ? 0 : -1}
+          onClick={() => setSelectedIndex(index)}
+          aria-label={`Image: ${image.filename}`}
+        >
+          <OptimizedImage
+            src={image.thumbnail}
+            alt={image.alt || image.filename}
+            className="w-full h-64 object-cover"
+          />
+        </div>
+      ))}
+    </div>
+  )
+}
+```
+
+## Build and Deployment
+
+### Next.js Configuration
+
+**next.config.mjs:**
+```javascript
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: 'export',
+  trailingSlash: true,
+  skipTrailingSlashRedirect: true,
+  images: {
+    unoptimized: true,
+  },
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
+  experimental: {
+    optimizeCss: true,
+  },
+}
+
+export default nextConfig
+```
+
+### Build Scripts
+
+**package.json:**
+```json
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "export": "next build && next export"
+  }
+}
+```
+
+## Integration with Go Backend
+
+The frontend is built as a static site and embedded into the Go binary:
+
+```go
+//go:embed all:frontend/out
+var frontendFiles embed.FS
+
+func setupStaticFiles(mux *http.ServeMux) {
+    // Serve embedded frontend files
+    frontendFS, _ := fs.Sub(frontendFiles, "frontend/out")
+    fileServer := http.FileServer(http.FS(frontendFS))
+    
+    mux.Handle("/", fileServer)
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Upload Interface" icon="upload" href="/frontend/upload">
+    Learn about the drag-and-drop upload system
+  </Card>
+  
+  <Card title="Gallery Features" icon="images" href="/frontend/gallery">
+    Explore the responsive image gallery
+  </Card>
+  
+  <Card title="Management Tools" icon="settings" href="/frontend/management">
+    Discover image management capabilities
+  </Card>
+  
+  <Card title="Dark Mode" icon="moon" href="/frontend/dark-mode">
+    Understand the theming system
+  </Card>
+</CardGroup>
